@@ -35,19 +35,73 @@ export class MySQLStyleSearchService {
     for (const keyword of keywords) {
       console.log(`🔍 キーワード "${keyword}" で検索中...`);
 
-      // 建築物テーブルから検索
-      const { data: buildingsData, error: buildingsError } = await supabase
-        .from('buildings_table_2')
-        .select('building_id')
-        .or(`title.ilike.%${keyword}%,titleEn.ilike.%${keyword}%,buildingTypes.ilike.%${keyword}%,buildingTypesEn.ilike.%${keyword}%,location.ilike.%${keyword}%,locationEn_from_datasheetChunkEn.ilike.%${keyword}%`);
+      // 建築物テーブルから検索（ページネーションを使用して制限を回避）
+      const allBuildingIds = new Set<number>();
+      
+      // 各フィールドをページネーションで検索
+      const searchFields = [
+        { field: 'title', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('title', `%${keyword}%`).range(offset, offset + 999) },
+        { field: 'titleEn', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('titleEn', `%${keyword}%`).range(offset, offset + 999) },
+        { field: 'buildingTypes', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('buildingTypes', `%${keyword}%`).range(offset, offset + 999) },
+        { field: 'buildingTypesEn', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('buildingTypesEn', `%${keyword}%`).range(offset, offset + 999) },
+        { field: 'location', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('location', `%${keyword}%`).range(offset, offset + 999) },
+        { field: 'locationEn_from_datasheetChunkEn', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('locationEn_from_datasheetChunkEn', `%${keyword}%`).range(offset, offset + 999) },
+        { field: 'prefectures', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('prefectures', `%${keyword}%`).range(offset, offset + 999) },
+        { field: 'prefecturesEn', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('prefecturesEn', `%${keyword}%`).range(offset, offset + 999) },
+        { field: 'areas', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('areas', `%${keyword}%`).range(offset, offset + 999) },
+        { field: 'areasEn', condition: (offset: number) => supabase.from('buildings_table_2').select('building_id').ilike('areasEn', `%${keyword}%`).range(offset, offset + 999) }
+      ];
+      
+      // 各フィールドをページネーションで検索
+      for (const { field, condition } of searchFields) {
+        let offset = 0;
+        let hasMore = true;
+        let totalCount = 0;
+        
+        while (hasMore) {
+          const { data, error } = await condition(offset);
+          
+          if (error) {
+            console.error(`❌ ${field}フィールド検索エラー:`, error);
+            break;
+          }
+          
+          if (data && data.length > 0) {
+            const beforeCount = allBuildingIds.size;
+            data.forEach(building => allBuildingIds.add(building.building_id));
+            const afterCount = allBuildingIds.size;
+            totalCount += data.length;
+            
+            console.log(`  - ${field} (offset ${offset}): ${data.length}件 (新規: ${afterCount - beforeCount}件)`);
+            
+            // 1000件未満の場合は終了
+            if (data.length < 1000) {
+              hasMore = false;
+            } else {
+              offset += 1000;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+        
+        console.log(`  - ${field} 合計: ${totalCount}件`);
+      }
+      
+      const buildingsData = Array.from(allBuildingIds).map(id => ({ building_id: id }));
+      const buildingsError = null;
 
       if (buildingsError) {
         console.error('❌ 建築物テーブル検索エラー:', buildingsError);
         continue;
       }
 
+      console.log(`🔍 建築物テーブル検索結果: ${buildingsData?.length || 0}件`);
+
       // 建築家名から検索（複数ステップで外部キー関係を辿る）
-      const architectBuildingIds = await this.searchInArchitectTables(keyword);
+      // デバッグ用: 建築家テーブルの検索を一時的に無効化
+      const architectBuildingIds = []; // await this.searchInArchitectTables(keyword);
+      console.log(`🔍 建築家テーブル検索結果: ${architectBuildingIds.length}件 (無効化中)`);
 
       // 建築物IDを収集
       const buildingIds = new Set<number>();
@@ -65,6 +119,9 @@ export class MySQLStyleSearchService {
       });
 
       console.log(`🔍 キーワード "${keyword}" の結果: ${buildingIds.size}件`);
+      console.log(`  - 建築物テーブル: ${buildingsData?.length || 0}件`);
+      console.log(`  - 建築家テーブル: ${architectBuildingIds.length}件`);
+      console.log(`  - 重複除去後: ${buildingIds.size}件`);
       buildingIdSets.push(buildingIds);
     }
 
@@ -89,7 +146,8 @@ export class MySQLStyleSearchService {
       const { data: individualArchitects, error: individualError } = await supabase
         .from('individual_architects')
         .select('individual_architect_id')
-        .or(`name_ja.ilike.%${keyword}%,name_en.ilike.%${keyword}%`);
+        .or(`name_ja.ilike.%${keyword}%,name_en.ilike.%${keyword}%`)
+        .limit(10000); // 制限を大幅に増加
       
       if (individualError) {
         console.error('❌ individual_architects検索エラー:', individualError);
@@ -108,7 +166,8 @@ export class MySQLStyleSearchService {
       const { data: compositions, error: compositionsError } = await supabase
         .from('architect_compositions')
         .select('architect_id')
-        .in('individual_architect_id', individualArchitectIds);
+        .in('individual_architect_id', individualArchitectIds)
+        .limit(10000); // 制限を大幅に増加
       
       if (compositionsError) {
         console.error('❌ architect_compositions検索エラー:', compositionsError);
@@ -127,7 +186,8 @@ export class MySQLStyleSearchService {
       const { data: buildingArchitects, error: buildingArchitectsError } = await supabase
         .from('building_architects')
         .select('building_id')
-        .in('architect_id', architectIds);
+        .in('architect_id', architectIds)
+        .limit(10000); // 制限を大幅に増加
       
       if (buildingArchitectsError) {
         console.error('❌ building_architects検索エラー:', buildingArchitectsError);
