@@ -3,6 +3,7 @@ import { Building, SearchFilters, Architect, Photo, NewArchitect } from '../type
 import { sessionManager } from '../utils/session-manager'
 import { BuildingSearchEngine } from './BuildingSearchEngine'
 import { BuildingSearchViewService } from './building-search-view'
+import { MySQLStyleSearchService } from './mysql-style-search'
 
 export class SupabaseApiError extends Error {
   constructor(public status: number, message: string) {
@@ -14,10 +15,12 @@ export class SupabaseApiError extends Error {
 class SupabaseApiClient {
   private searchEngine: BuildingSearchEngine;
   private buildingSearchViewService: BuildingSearchViewService;
+  private mysqlStyleSearchService: MySQLStyleSearchService;
 
   constructor() {
     this.searchEngine = new BuildingSearchEngine();
     this.buildingSearchViewService = new BuildingSearchViewService();
+    this.mysqlStyleSearchService = new MySQLStyleSearchService();
   }
   // 建築物関連API
   async getBuildings(page: number = 1, limit: number = 10): Promise<{ buildings: Building[], total: number }> {
@@ -119,6 +122,43 @@ class SupabaseApiClient {
     // 地点検索が有効な場合は、PostGISの空間関数を使用
     if (filters.currentLocation) {
       return this.searchBuildingsWithDistance(filters, page, limit, language);
+    }
+
+    // テキスト検索がある場合は、MySQLスタイル検索を使用
+    if (filters.query && filters.query.trim()) {
+      console.log('🔍 MySQLスタイル検索開始:', { filters, language, page, limit });
+      
+      try {
+        const result = await this.mysqlStyleSearchService.searchBuildings(filters, language, page, limit);
+        
+        console.log('✅ MySQLスタイル検索完了:', {
+          resultCount: result.data.length,
+          totalCount: result.count,
+          page: result.page,
+          totalPages: result.totalPages
+        });
+
+        // データ変換
+        const transformedBuildings: Building[] = [];
+        for (const building of result.data) {
+        try {
+          const transformed = transformBuildingFromMySQLStyle(building);
+          transformedBuildings.push(transformed);
+        } catch (error) {
+          console.warn('MySQLスタイルデータ変換エラー:', error);
+        }
+        }
+
+        return {
+          buildings: transformedBuildings,
+          total: result.count
+        };
+
+      } catch (error) {
+        console.error('❌ MySQLスタイル検索でエラー:', error);
+        // フォールバック: 既存のビュー検索を使用
+        console.log(' フォールバック: 既存のビュー検索を使用');
+      }
     }
 
     console.log('🔍 ビュー検索開始:', { filters, language, page, limit });
@@ -1716,3 +1756,45 @@ export async function saveSearchToGlobalHistory(
     return false;
   }
 }
+
+/**
+ * MySQLスタイル検索の結果をBuilding型に変換
+ */
+function transformBuildingFromMySQLStyle(data: any): Building {
+    // 建築家情報を配列に変換
+    const architects = [];
+    if (data.architectJa && data.architectJa.trim()) {
+      const architectJaNames = data.architectJa.split(' / ');
+      const architectEnNames = data.architectEn ? data.architectEn.split(' / ') : [];
+      
+      for (let i = 0; i < architectJaNames.length; i++) {
+        architects.push({
+          architectJa: architectJaNames[i].trim(),
+          architectEn: architectEnNames[i]?.trim() || '',
+          slug: '' // MySQLスタイル検索ではslugは取得していない
+        });
+      }
+    }
+
+    return {
+      building_id: data.building_id,
+      title: data.title || '',
+      titleEn: data.titleEn || '',
+      uid: data.uid || '',
+      buildingTypes: data.buildingTypes || '',
+      buildingTypesEn: data.buildingTypesEn || '',
+      location: data.location || '',
+      locationEn: data.locationEn_from_datasheetChunkEn || '',
+      completionYears: data.completionYears || null,
+      lat: data.lat || null,
+      lng: data.lng || null,
+      thumbnailUrl: data.thumbnailUrl || null,
+      youtubeUrl: data.youtubeUrl || null,
+      architects: architects,
+      architectDetails: data.architectJa || '',
+      architectDetailsEn: data.architectEn || '',
+      slug: data.uid || data.building_id.toString(),
+      photos: [], // MySQLスタイル検索では写真は別途取得が必要
+      videos: data.youtubeUrl ? [{ url: data.youtubeUrl, title: '' }] : []
+    };
+  }
