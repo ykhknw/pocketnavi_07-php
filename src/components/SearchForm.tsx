@@ -213,6 +213,27 @@ function SearchFormComponent({
     onFiltersChange({ ...filters, query: '' });
   }, [filters, onFiltersChange, onSearchStart]);
 
+  // キーワードを分割する関数
+  const splitKeywords = useCallback((query: string): string[] => {
+    // 全角スペースを半角スペースに変換して分割
+    const temp = query.replace(/　/g, ' ');
+    return temp.split(' ').filter(keyword => keyword.trim() !== '');
+  }, []);
+
+  // 個別のキーワードを削除するハンドラー
+  const handleKeywordRemove = useCallback((keywordToRemove: string) => {
+    const keywords = splitKeywords(filters.query);
+    const newKeywords = keywords.filter(keyword => keyword !== keywordToRemove);
+    const newQuery = newKeywords.join(' ');
+    
+    // 検索開始時のコールバックを呼び出し
+    if (onSearchStart) {
+      onSearchStart();
+    }
+    
+    onFiltersChange({ ...filters, query: newQuery });
+  }, [filters, onFiltersChange, onSearchStart, splitKeywords]);
+
   const handleRadiusChange = useCallback((radius: number) => {
     onFiltersChange({ ...filters, radius });
   }, [filters, onFiltersChange]);
@@ -345,16 +366,18 @@ function SearchFormComponent({
                     <div className="text-sm text-muted-foreground">
                       <span className="font-medium">{language === 'ja' ? '選択中の項目：' : 'Selected items: '}</span>
                       {filters.query.trim() ? (
-                        <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs ml-2">
-                          {filters.query}
-                          <button
-                            onClick={handleQueryClear}
-                            className="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"
-                            title={language === 'ja' ? '削除' : 'Remove'}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
+                        splitKeywords(filters.query).map((keyword, index) => (
+                          <span key={`${keyword}-${index}`} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs ml-2">
+                            {keyword}
+                            <button
+                              onClick={() => handleKeywordRemove(keyword)}
+                              className="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"
+                              title={language === 'ja' ? '削除' : 'Remove'}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))
                       ) : null}
                       {filters.architects && filters.architects.length > 0 ? 
                         filters.architects.map(arch => (
