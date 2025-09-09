@@ -147,7 +147,9 @@ export class MarkerService {
 
     return `
       <div style="padding: 8px; min-width: 200px;">
-        <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">${title}</h3>
+        <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">
+          <a href="/building/${building.slug || building.id}" style="color: #1e40af; text-decoration: none; cursor: pointer;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${title}</a>
+        </h3>
         <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;">
           ${building.architects.map(a => {
             const architectName = language === 'ja' ? a.architectJa : a.architectEn;

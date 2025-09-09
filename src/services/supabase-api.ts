@@ -1777,14 +1777,22 @@ function transformBuildingFromMySQLStyle(data: any): Building {
     }
 
     return {
+      id: data.building_id,
       building_id: data.building_id,
       title: data.title || '',
       titleEn: data.titleEn || '',
       uid: data.uid || '',
-      buildingTypes: data.buildingTypes || '',
-      buildingTypesEn: data.buildingTypesEn || '',
+      slug: data.slug || data.uid || data.building_id.toString(), // uidをslugとして使用、なければbuilding_id
+      buildingTypes: data.buildingTypes ? data.buildingTypes.split('/').map(s => s.trim()).filter(s => s) : [],
+      buildingTypesEn: data.buildingTypesEn ? data.buildingTypesEn.split('/').map(s => s.trim()).filter(s => s) : [],
+      parentBuildingTypes: [],
+      parentStructures: [],
+      structures: [],
+      prefectures: data.prefectures || '',
+      prefecturesEn: data.prefecturesEn || null,
+      areas: data.areas || '',
       location: data.location || '',
-      locationEn: data.locationEn_from_datasheetChunkEn || '',
+      locationEn: data.locationEn_from_datasheetChunkEn || data.location || '',
       completionYears: data.completionYears || null,
       lat: data.lat || null,
       lng: data.lng || null,
@@ -1792,9 +1800,9 @@ function transformBuildingFromMySQLStyle(data: any): Building {
       youtubeUrl: data.youtubeUrl || null,
       architects: architects,
       architectDetails: data.architectJa || '',
-      architectDetailsEn: data.architectEn || '',
-      slug: data.uid || data.building_id.toString(),
       photos: [], // MySQLスタイル検索では写真は別途取得が必要
-      videos: data.youtubeUrl ? [{ url: data.youtubeUrl, title: '' }] : []
+      likes: 0,
+      created_at: data.created_at || new Date().toISOString(),
+      updated_at: data.updated_at || new Date().toISOString()
     };
   }

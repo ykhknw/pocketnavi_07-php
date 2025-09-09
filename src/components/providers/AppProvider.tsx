@@ -228,12 +228,13 @@ function AppProviderContent({ children }: { children: React.ReactNode }) {
     [handlers.handlePageChange, state.setCurrentPage, state.setFilters, state.location]
   );
 
-  // 検索開始時のコールバック（建築物詳細をクリア）
+  // 検索開始時のコールバック（建築物詳細をクリア、ページ番号をリセット）
   const handleSearchStart = useCallback(() => {
-    console.log('🔍 検索開始: 建築物詳細をクリア');
+    console.log('🔍 検索開始: 建築物詳細をクリア、ページ番号をリセット');
     state.setSelectedBuilding(null);
     state.setShowDetail(false);
-  }, [state.setSelectedBuilding, state.setShowDetail]);
+    state.setCurrentPage(1); // 検索時にページ番号を1にリセット
+  }, [state.setSelectedBuilding, state.setShowDetail, state.setCurrentPage]);
 
   // 検索履歴削除ハンドラー
   const handleRemoveRecentSearch = useCallback((index: number) => {

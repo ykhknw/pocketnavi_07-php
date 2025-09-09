@@ -270,18 +270,22 @@ export class MySQLStyleSearchService {
         };
       }
 
-      // 建築物データを取得
-      const offset = (page - 1) * limit;
-      const paginatedIds = buildingIds.slice(offset, offset + limit);
+      // 検索結果全体をbuilding_idの降順でソート
+      const sortedBuildingIds = buildingIds.sort((a, b) => b - a);
+      console.log(`🔍 検索結果全体をソート: ${sortedBuildingIds.length}件`);
 
-      console.log(`🔍 ページネーション適用: ${paginatedIds.length}件 (${offset + 1}-${offset + paginatedIds.length} / ${buildingIds.length})`);
+      // ページネーション適用
+      const offset = (page - 1) * limit;
+      const paginatedIds = sortedBuildingIds.slice(offset, offset + limit);
+
+      console.log(`🔍 ページネーション適用: ${paginatedIds.length}件 (${offset + 1}-${offset + paginatedIds.length} / ${sortedBuildingIds.length})`);
 
       // 建築物データを取得（建築家情報は別途取得）
       const { data: buildingsData, error: buildingsError } = await supabase
         .from('buildings_table_2')
         .select('*')
         .in('building_id', paginatedIds)
-        .order('building_id');
+        .order('building_id', { ascending: false });
 
       if (buildingsError) {
         console.error('❌ 建築物データ取得エラー:', buildingsError);
@@ -321,10 +325,12 @@ export class MySQLStyleSearchService {
           .join(' / ') || '';
 
         return {
+          id: building.building_id,
           building_id: building.building_id,
           title: building.title,
           titleEn: building.titleEn,
           uid: building.uid,
+          slug: building.slug || building.uid || building.building_id.toString(), // データベースのslugを優先、なければuid、最後にbuilding_id
           buildingTypes: building.buildingTypes,
           buildingTypesEn: building.buildingTypesEn,
           location: building.location,
