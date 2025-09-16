@@ -111,11 +111,15 @@ function BuildingDetailComponent({
   }, [building.lat, building.lng]);
 
   const handleArchitectSearch = useCallback((name: string, slug?: string) => {
-    if (slug) {
+    console.log('🔍 建築家検索 (Detail):', { name, slug, hasSlug: !!slug, slugTrimmed: slug?.trim(), condition: slug && slug.trim() !== '' });
+    
+    if (slug && slug.trim() !== '') {
       // 新しいテーブル構造: slugベースの建築家ページに遷移
+      console.log('新しいテーブル構造での建築家検索:', { name, slug });
       window.location.href = `/architect/${slug}`;
     } else {
       // 古いテーブル構造: 詳細ページから一覧ページに戻り、建築家のみで検索
+      console.log('古いテーブル構造での建築家検索:', { name });
       const searchParams = new URLSearchParams();
       searchParams.set('architects', name);
       const url = `/?${searchParams.toString()}`;

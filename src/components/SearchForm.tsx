@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Search, MapPin, Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { SearchFilters } from '../types';
-import { architectsData, prefecturesData, buildingUsageData } from '../data/searchData';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -148,15 +147,9 @@ function SearchFormComponent({
   // アクティブなフィルターがあるかどうかを判定（useMemoで最適化）
   const hasActiveFilters = useMemo(() => 
     filters.query ||
-    (filters.architects?.length || 0) > 0 ||
-    filters.buildingTypes.length > 0 ||
-    filters.prefectures.length > 0 ||
-    filters.areas.length > 0 ||
     filters.hasPhotos ||
-    filters.hasVideos ||
-    filters.currentLocation || // 地点検索も含める
-    (typeof filters.completionYear === 'number' && !isNaN(filters.completionYear)),
-    [filters.query, filters.architects, filters.buildingTypes, filters.prefectures, filters.areas, filters.hasPhotos, filters.hasVideos, filters.currentLocation, filters.completionYear]
+    filters.hasVideos,
+    [filters.query, filters.hasPhotos, filters.hasVideos]
   );
 
   // Escキーで詳細検索を閉じる
@@ -174,14 +167,8 @@ function SearchFormComponent({
   // 選択された項目数を計算（useMemoで最適化）
   const selectedCounts = useMemo(() => ({
     query: filters.query.trim() ? 1 : 0, // 検索文字列を追加
-    architects: filters.architects?.length || 0,
-    buildingTypes: filters.buildingTypes?.length || 0,
-    prefectures: filters.prefectures?.length || 0,
-    areas: filters.areas?.length || 0,
-    completionYear: filters.completionYear ? 1 : 0,
-    locationSearch: filters.currentLocation ? 1 : 0, // 地点検索を追加
     media: (filters.hasPhotos ? 1 : 0) + (filters.hasVideos ? 1 : 0) // メディアフィルターを追加
-  }), [filters.query, filters.architects, filters.buildingTypes, filters.prefectures, filters.areas, filters.completionYear, filters.currentLocation, filters.hasPhotos, filters.hasVideos]);
+  }), [filters.query, filters.hasPhotos, filters.hasVideos]);
 
   // フィルターが変更されたときに詳細検索を自動的に開く（一時的に無効化）
   // useEffect(() => {
@@ -252,65 +239,6 @@ function SearchFormComponent({
     });
   }, [filters, onFiltersChange, onSearchStart]);
 
-  const handleArchitectToggle = useCallback((architect: string) => {
-    const currentArchitects = filters.architects || [];
-    const newArchitects = currentArchitects.includes(architect)
-      ? currentArchitects.filter(a => a !== architect)
-      : [...currentArchitects, architect];
-    
-    // 検索開始時のコールバックを呼び出し
-    if (onSearchStart) {
-      onSearchStart();
-    }
-    
-    onFiltersChange({ ...filters, architects: newArchitects });
-  }, [filters, onFiltersChange, onSearchStart]);
-
-  const handleBuildingTypeToggle = useCallback((type: string) => {
-    const currentTypes = filters.buildingTypes || [];
-    const newTypes = currentTypes.includes(type)
-      ? currentTypes.filter(t => t !== type)
-      : [...currentTypes, type];
-    
-    // 検索開始時のコールバックを呼び出し
-    if (onSearchStart) {
-      onSearchStart();
-    }
-    
-    onFiltersChange({ ...filters, buildingTypes: newTypes });
-  }, [filters, onFiltersChange, onSearchStart]);
-
-  const handlePrefectureToggle = useCallback((prefecture: string) => {
-    const currentPrefectures = filters.prefectures || [];
-    const newPrefectures = currentPrefectures.includes(prefecture)
-      ? currentPrefectures.filter(p => p !== prefecture)
-      : [...currentPrefectures, prefecture];
-    
-    // 検索開始時のコールバックを呼び出し
-    if (onSearchStart) {
-      onSearchStart();
-    }
-    
-    onFiltersChange({ ...filters, prefectures: newPrefectures });
-  }, [filters, onFiltersChange, onSearchStart]);
-
-  const handleAreaToggle = useCallback((area: string) => {
-    const currentAreas = filters.areas || [];
-    const newAreas = currentAreas.includes(area)
-      ? currentAreas.filter(a => a !== area)
-      : [...currentAreas, area];
-    
-    // 検索開始時のコールバックを呼び出し
-    if (onSearchStart) {
-      onSearchStart();
-    }
-    
-    onFiltersChange({ ...filters, areas: newAreas });
-  }, [filters, onFiltersChange, onSearchStart]);
-
-  const handleCompletionYearClear = useCallback(() => {
-    onFiltersChange({ ...filters, completionYear: undefined });
-  }, [filters, onFiltersChange]);
 
   const handleMediaToggle = useCallback((type: 'photos' | 'videos', checked: boolean) => {
     onFiltersChange({
@@ -321,22 +249,13 @@ function SearchFormComponent({
 
   const clearFilters = useCallback(() => {
     onFiltersChange({
+      ...filters,
       query: '',
-      radius: 5,
-      architects: [],
-      buildingTypes: [],
-      prefectures: [],
-      areas: [],
       hasPhotos: false,
-      hasVideos: false,
-      currentLocation: null, // 地点検索もクリア
-      completionYear: undefined
+      hasVideos: false
     });
-  }, [onFiltersChange]);
+  }, [filters, onFiltersChange]);
 
-  const architects = architectsData[language];
-  const prefectures = prefecturesData[language];
-  const buildingUsages = buildingUsageData[language];
 
   return (
     <Card className="mb-6">
@@ -378,96 +297,6 @@ function SearchFormComponent({
                             </button>
                           </span>
                         ))
-                      ) : null}
-                      {filters.architects && filters.architects.length > 0 ? 
-                        filters.architects.map(arch => (
-                          <span key={arch} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs ml-2">
-                            {arch}
-                            <button
-                              onClick={() => handleArchitectToggle(arch)}
-                              className="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"
-                              title={language === 'ja' ? '削除' : 'Remove'}
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        ))
-                      : null}
-                      {filters.buildingTypes && filters.buildingTypes.length > 0 ? 
-                        filters.buildingTypes.map(type => (
-                          <span key={type} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs ml-2">
-                            {type}
-                            <button
-                              onClick={() => handleBuildingTypeToggle(type)}
-                              className="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"
-                              title={language === 'ja' ? '削除' : 'Remove'}
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        ))
-                      : null}
-                      {filters.prefectures && filters.prefectures.length > 0 ? 
-                        filters.prefectures.map(pref => (
-                          <span key={pref} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs ml-2">
-                            {pref}
-                            <button
-                              onClick={() => handlePrefectureToggle(pref)}
-                              className="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"
-                              title={language === 'ja' ? '削除' : 'Remove'}
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        ))
-                      : null}
-                      {filters.areas && filters.areas.length > 0 ? 
-                        filters.areas.map(area => (
-                          <span key={area} className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs ml-2">
-                            {area}
-                            <button
-                              onClick={() => handleAreaToggle(area)}
-                              className="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"
-                              title={language === 'ja' ? '削除' : 'Remove'}
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        ))
-                      : null}
-                      {filters.completionYear ? (
-                        <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs ml-2">
-                          {filters.completionYear}年
-                          <button
-                            onClick={() => handleCompletionYearClear()}
-                            className="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"
-                            title={language === 'ja' ? '削除' : 'Remove'}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ) : null}
-                      {filters.currentLocation ? (
-                        <span className="inline-flex items-center gap-2 bg-primary/10 text-primary px-2 py-1 rounded text-xs ml-2">
-                          <span>{language === 'ja' ? '地点検索' : 'Location Search'}</span>
-                          <select
-                            value={filters.radius}
-                            onChange={(e) => handleRadiusChange(Number(e.target.value))}
-                            className="px-1 py-0.5 border border-primary/20 rounded text-xs bg-primary/5 text-primary min-w-[50px]"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <option value={5}>5km</option>
-                            <option value={10}>10km</option>
-                            <option value={20}>20km</option>
-                          </select>
-                          <button
-                            onClick={handleLocationClear}
-                            className="hover:bg-primary/20 rounded-full w-4 h-4 flex items-center justify-center"
-                            title={language === 'ja' ? '削除' : 'Remove'}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
                       ) : null}
                       {filters.hasPhotos ? (
                         <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded text-xs ml-2">
@@ -575,173 +404,30 @@ function SearchFormComponent({
             </div>
 
             <div className="space-y-2 border rounded-lg">
-              {/* 100%幅: 建築家 */}
+              {/* メディアのみ */}
               <CollapsibleSection
-                title={language === 'ja' ? '建築家' : 'Architects'}
-                selectedCount={filters.architects?.length || 0}
+                title={language === 'ja' ? 'メディア' : 'Media'}
+                selectedCount={(filters.hasPhotos ? 1 : 0) + (filters.hasVideos ? 1 : 0)}
               >
-                <SearchableList
-                  items={architects}
-                  selectedItems={filters.architects || []}
-                  onToggle={handleArchitectToggle}
-                  searchPlaceholder={language === 'ja' ? '建築家名で検索...' : 'Search architects...'}
-                  maxHeight="250px"
-                />
-              </CollapsibleSection>
-
-              <div className="border-t" />
-
-              {/* 50% + 50%: 都道府県 と 地点検索 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <CollapsibleSection
-                  title={language === 'ja' ? '都道府県' : 'Prefectures'}
-                  selectedCount={filters.prefectures.length}
-                >
-                  <SearchableList
-                    items={prefectures}
-                    selectedItems={filters.prefectures}
-                    onToggle={handlePrefectureToggle}
-                    searchPlaceholder={language === 'ja' ? '都道府県名で検索...' : 'Search prefectures...'}
-                    maxHeight="250px"
-                  />
-                </CollapsibleSection>
-
-                <CollapsibleSection
-                  title={language === 'ja' ? '地点検索' : 'Location Search'}
-                  selectedCount={filters.currentLocation ? 1 : 0}
-                >
-                  <div className="space-y-3 pt-2">
-                    <div className="space-y-2">
-                      <Label className="text-sm">{language === 'ja' ? '検索半径' : 'Search radius'}</Label>
-                      <div className="space-y-2">
-                        {[5, 10, 20].map((radius) => (
-                          <div key={radius} className="flex items-center space-x-2">
-                            <input
-                              type="radio"
-                              id={`radius-${radius}`}
-                              name="radius"
-                              value={radius}
-                              checked={filters.radius === radius}
-                              onChange={(e) => {
-                                const newRadius = Number(e.target.value);
-                                onFiltersChange({ ...filters, radius: newRadius });
-                              }}
-                              className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
-                            />
-                            <Label htmlFor={`radius-${radius}`} className="text-sm cursor-pointer">
-                              {radius}km
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {!filters.currentLocation && (
-                      <div className="pt-2">
-                        <Button
-                          onClick={onGetLocation}
-                          disabled={locationLoading}
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                        >
-                          <MapPin className="h-4 w-4 mr-2" />
-                          {locationLoading ? t('loading', language) : t('currentLocation', language)}
-                        </Button>
-                      </div>
-                    )}
-                    
-                    {filters.currentLocation && (
-                      <div className="pt-2">
-                        <div className="text-xs text-muted-foreground mb-2">
-                          {language === 'ja' 
-                            ? `検索中心: (${filters.currentLocation.lat.toFixed(4)}, ${filters.currentLocation.lng.toFixed(4)})`
-                            : `Search center: (${filters.currentLocation.lat.toFixed(4)}, ${filters.currentLocation.lng.toFixed(4)})`
-                          }
-                        </div>
-                        <Button
-                          onClick={handleLocationClear}
-                          variant="ghost"
-                          size="sm"
-                          className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          {language === 'ja' ? '地点検索を解除' : 'Clear location search'}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CollapsibleSection>
-              </div>
-
-              <div className="border-t" />
-
-              {/* 100%幅: 用途 */}
-              <CollapsibleSection
-                title={language === 'ja' ? '用途' : 'Building Usage'}
-                selectedCount={filters.buildingTypes.length}
-              >
-                <SearchableList
-                  items={buildingUsages}
-                  selectedItems={filters.buildingTypes}
-                  onToggle={handleBuildingTypeToggle}
-                  searchPlaceholder={language === 'ja' ? '用途で検索...' : 'Search building usage...'}
-                  maxHeight="250px"
-                />
-              </CollapsibleSection>
-
-              <div className="border-t" />
-
-              {/* 50% + 50%: メディア と 建築年 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <CollapsibleSection
-                  title={language === 'ja' ? 'メディア' : 'Media'}
-                  selectedCount={(filters.hasPhotos ? 1 : 0) + (filters.hasVideos ? 1 : 0)}
-                >
-                  <div className="space-y-2 pt-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="has-photos"
-                        checked={filters.hasPhotos}
-                        onCheckedChange={(checked) => onFiltersChange({ ...filters, hasPhotos: !!checked })}
-                      />
-                      <Label htmlFor="has-photos" className="text-sm">{t('withPhotos', language)}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="has-videos"
-                        checked={filters.hasVideos}
-                        onCheckedChange={(checked) => onFiltersChange({ ...filters, hasVideos: !!checked })}
-                      />
-                      <Label htmlFor="has-videos" className="text-sm">{t('withVideos', language)}</Label>
-                    </div>
-                  </div>
-                </CollapsibleSection>
-
-                <CollapsibleSection
-                  title={language === 'ja' ? '建築年' : 'Completion Year'}
-                  selectedCount={filters.completionYear ? 1 : 0}
-                >
-                  <div className="space-y-2 pt-2">
-                    <Label htmlFor="completion-year" className="text-sm">{language === 'ja' ? '建築年を入力' : 'Enter year'}</Label>
-                    <Input
-                      id="completion-year"
-                      type="number"
-                      inputMode="numeric"
-                      placeholder={language === 'ja' ? '例: 1995' : 'e.g., 1995'}
-                      value={typeof filters.completionYear === 'number' && !isNaN(filters.completionYear) ? String(filters.completionYear) : ''}
-                      onChange={(e) => {
-                        const val = e.target.value.trim();
-                        onFiltersChange({
-                          ...filters,
-                          completionYear: val === '' ? undefined : Number(val)
-                        });
-                      }}
-                      className="text-sm"
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="has-photos"
+                      checked={filters.hasPhotos}
+                      onCheckedChange={(checked) => onFiltersChange({ ...filters, hasPhotos: !!checked })}
                     />
+                    <Label htmlFor="has-photos" className="text-sm">{t('withPhotos', language)}</Label>
                   </div>
-                </CollapsibleSection>
-              </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="has-videos"
+                      checked={filters.hasVideos}
+                      onCheckedChange={(checked) => onFiltersChange({ ...filters, hasVideos: !!checked })}
+                    />
+                    <Label htmlFor="has-videos" className="text-sm">{t('withVideos', language)}</Label>
+                  </div>
+                </div>
+              </CollapsibleSection>
             </div>
           </div>
         )}

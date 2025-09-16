@@ -327,28 +327,21 @@ export function ArchitectPage() {
               language={language}
               startIndex={(currentPage - 1) * itemsPerPage}
               onSearchAround={context.handleSearchAround}
-              likedBuildings={context.likedBuildings || []}
-              onLikedBuildingClick={context.handleLikedBuildingClick}
-              onRemoveLikedBuilding={context.handleRemoveLikedBuilding}
-              recentSearches={context.searchHistory || []}
               popularSearches={context.popularSearches || []}
               popularSearchesLoading={context.popularSearchesLoading || false}
               popularSearchesError={context.popularSearchesError || null}
               onSearchClick={context.handleSearchFromHistory}
-              onRemoveRecentSearch={context.handleRemoveRecentSearch}
               onFilterSearchClick={(filters) => {
                 if (filters) {
-                  // Architectページではトップへ遷移し、クエリで反映
-                  const params = new URLSearchParams();
-                  if (filters.buildingTypes && filters.buildingTypes.length > 0) {
-                    params.set('buildingTypes', filters.buildingTypes[0]);
+                  // 写真・動画フィルターの処理
+                  const newFilters = { ...context.filters };
+                  if (filters.hasPhotos !== undefined) {
+                    newFilters.hasPhotos = filters.hasPhotos;
                   }
-                  if (filters.prefectures && filters.prefectures.length > 0) {
-                    params.set('prefectures', filters.prefectures[0]);
+                  if (filters.hasVideos !== undefined) {
+                    newFilters.hasVideos = filters.hasVideos;
                   }
-                  if (params.toString()) {
-                    navigate(`/?${params.toString()}`);
-                  }
+                  context.setFilters(newFilters);
                 }
               }}
               showAdminPanel={false}

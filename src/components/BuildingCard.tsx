@@ -137,7 +137,9 @@ function BuildingCardComponent({
   const handleArchitectSearch = useCallback((e: React.MouseEvent, name: string, slug?: string) => {
     e.stopPropagation();
     
-    if (slug) {
+    console.log('🔍 建築家検索:', { name, slug, hasSlug: !!slug, slugTrimmed: slug?.trim(), condition: slug && slug.trim() !== '' });
+    
+    if (slug && slug.trim() !== '') {
       // 新しいテーブル構造: slugベースの建築家ページに遷移
       console.log('新しいテーブル構造での建築家検索:', { name, slug });
       window.location.href = `/architect/${slug}`;
@@ -395,7 +397,7 @@ function BuildingCardComponent({
                         return null;
                       }
                       
-                      console.log(`✅ 建築家バッジ作成: ${trimmedName} (${architect.slug})`);
+                      console.log(`✅ 建築家バッジ作成: ${trimmedName} (slug: "${architect.slug}")`);
                       
                       // 部分一致チェック: フィルターの建築家名が現在の建築家名に含まれているか、またはその逆
                       const isHighlighted = context.filters.architects?.some(filterArchitect => 

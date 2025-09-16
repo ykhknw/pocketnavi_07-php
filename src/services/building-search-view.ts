@@ -34,7 +34,7 @@ export class BuildingSearchViewService {
       
       // 基本クエリの構築（新しいビューを使用）
       let query = supabase
-        .from('buildings_search_view')
+        .from('buildings_search_view_with_slug')
         .select('*', { count: 'exact' });
 
       // フィルター条件を個別に適用
@@ -213,7 +213,7 @@ export class BuildingSearchViewService {
       
       for (const buildingType of filters.buildingTypes) {
         const { data, error } = await supabase
-          .from('buildings_search_view')
+          .from('buildings_search_view_with_slug')
           .select('*', { count: 'exact' })
           .ilike(column, `%${buildingType}%`)
           .order('building_id', { ascending: false });
@@ -441,7 +441,7 @@ export class BuildingSearchViewService {
       // 各建物用途で個別に検索
       for (const buildingType of buildingTypes) {
         const { data, error } = await supabase
-          .from('buildings_search_view')
+          .from('buildings_search_view_with_slug')
           .select('*', { count: 'exact' })
           .ilike(column, `%${buildingType}%`)
           .order('building_id', { ascending: false });
@@ -509,7 +509,7 @@ export class BuildingSearchViewService {
       // 基本クエリの構築（ページネーションなし）
       // 検索元の座標に近い建築物を優先的に取得するため、座標範囲で絞り込み
       let query = supabase
-        .from('buildings_search_view')
+        .from('buildings_search_view_with_slug')
         .select('*', { count: 'exact' });
       
              // 検索元の座標周辺の建築物を優先的に取得
@@ -775,7 +775,7 @@ export class BuildingSearchViewService {
   async getTotalCount(filters: SearchFilters, language: 'ja' | 'en' = 'ja') {
     try {
       let query = supabase
-        .from('buildings_search_view')
+        .from('buildings_search_view_with_slug')
         .select('building_id', { count: 'exact', head: true });
 
       query = this.applyFilters(query, filters, language);

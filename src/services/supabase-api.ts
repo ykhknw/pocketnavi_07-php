@@ -312,6 +312,19 @@ private async transformBuildingFromView(buildingView: any): Promise<Building> {
       buildingView.architect_names_en.split(',').map(name => name.trim()).filter(name => name) : 
       [];
     
+    // slug情報を取得（既存のビューには含まれていないため空配列）
+    const architectSlugs = buildingView.architect_slugs || [];
+    
+    console.log('🔍 建築家情報処理:', {
+      architectNamesJa,
+      architectNamesEn,
+      architectSlugs,
+      architectJaCount: architectNamesJa.length,
+      architectEnCount: architectNamesEn.length,
+      architectSlugCount: architectSlugs.length,
+      hasArchitectSlugs: 'architect_slugs' in buildingView
+    });
+    
     // order_index情報がある場合はそれを使用、ない場合は配列のインデックスを使用
     const orderIndices = buildingView.architect_order_indices || [];
     
@@ -320,7 +333,7 @@ private async transformBuildingFromView(buildingView: any): Promise<Building> {
       architect_id: buildingView.architect_ids?.[index] || 0,
       architectJa: nameJa,
       architectEn: architectNamesEn[index] || nameJa,
-      slug: '', // 必要に応じて後で設定
+      slug: architectSlugs[index] || '',
       websites: []
     }));
 
@@ -1762,8 +1775,12 @@ export async function saveSearchToGlobalHistory(
  */
 function transformBuildingFromMySQLStyle(data: any): Building {
     // 建築家情報を配列に変換
-    const architects = [];
-    if (data.architectJa && data.architectJa.trim()) {
+    let architects = [];
+    if (data.architects && Array.isArray(data.architects)) {
+      // 新しい形式: 個別の建築家情報が配列で提供される
+      architects = data.architects;
+    } else if (data.architectJa && data.architectJa.trim()) {
+      // 古い形式: 文字列から分割
       const architectJaNames = data.architectJa.split(' / ');
       const architectEnNames = data.architectEn ? data.architectEn.split(' / ') : [];
       
@@ -1771,7 +1788,7 @@ function transformBuildingFromMySQLStyle(data: any): Building {
         architects.push({
           architectJa: architectJaNames[i].trim(),
           architectEn: architectEnNames[i]?.trim() || '',
-          slug: '' // MySQLスタイル検索ではslugは取得していない
+          slug: '' // 古い形式ではslugは取得していない
         });
       }
     }

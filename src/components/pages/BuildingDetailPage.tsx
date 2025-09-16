@@ -169,10 +169,6 @@ export function BuildingDetailPage() {
               startIndex={context.startIndex}
               onSearchAround={context.handleSearchAround}
               language={context.language}
-              likedBuildings={context.likedBuildings}
-              onLikedBuildingClick={context.handleLikedBuildingClick}
-              onRemoveLikedBuilding={context.handleRemoveLikedBuilding}
-              recentSearches={context.searchHistory || []}
               popularSearches={context.popularSearches || []}
               onSearchClick={context.handleSearchFromHistory}
             />

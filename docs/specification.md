@@ -6,7 +6,7 @@
 PocketNavi - 建築物ナビゲーションアプリ
 
 ### 1.2 バージョン
-2.2.0
+2.3.0
 
 ### 1.3 概要
 日本の建築物を検索・閲覧できるWebアプリケーション。建築家、建物タイプ、地域などでフィルタリングが可能で、地図上での位置確認もできる。多言語対応（日本語・英語）とレスポンシブデザインを提供。
@@ -80,8 +80,10 @@ src/
 │   └── useSupabaseToggle.ts
 ├── services/           # APIサービス
 │   ├── api.ts
+│   ├── building-search-view.ts
 │   ├── image-search.ts
 │   ├── marker-service.ts
+│   ├── mysql-style-search.ts
 │   ├── planetscale-api.ts
 │   └── supabase-api.ts
 ├── utils/              # ユーティリティ関数
@@ -199,14 +201,19 @@ interface SearchFilters {
 ### 4.1 主要機能
 
 #### 4.1.1 建築作品検索
-- **キーワード検索**: 建築物名、建築家名での検索
+- **横断検索**: 8つのフィールドを横断した包括的検索
+  - 建築物名（日本語・英語）
+  - 建物用途（日本語・英語）
+  - 所在地（日本語・英語）
+  - 建築家名（日本語・英語）
+- **AND検索**: 全角・半角スペース区切りによる複数キーワード検索
+  - 各キーワードは8フィールドでOR検索
+  - キーワード間はAND条件で結合
+  - 例: `安藤忠雄 住宅` → 安藤忠雄と住宅の両方が含まれる建物
 - **フィルタリング**: 
-  - 建築家による絞り込み
-  - 建物タイプによる絞り込み
-  - 地域（都道府県・エリア）による絞り込み
-  - 写真・動画の有無による絞り込み
+  - メディア（写真・動画）の有無による絞り込み
 - **距離検索**: 現在地からの半径指定による検索
-- **ページネーション**: 10件ずつのページ分割表示
+- **ページネーション**: 20件ずつのページ分割表示
 
 #### 4.1.2 地図表示
 - **インタラクティブマップ**: Leafletを使用した地図表示
@@ -227,8 +234,6 @@ interface SearchFilters {
 - **翻訳データ**: 建築物名、建築家名、建物タイプ等
 
 #### 4.1.5 ユーザー機能
-- **お気に入り**: 建築物のお気に入り登録・管理
-- **検索履歴**: 過去の検索履歴の保存・表示
 - **人気検索**: 人気の検索キーワード表示
 
 ### 4.2 管理者機能
@@ -270,10 +275,15 @@ Response: { buildings: Building[], total: number }
 GET /buildings_table_2/{id}
 Response: Building
 
-// 建築物検索
+// 建築物検索（横断検索・AND検索対応）
 POST /buildings_table_2/search
 Body: SearchFilters
 Response: { buildings: Building[], total: number }
+
+// MySQLスタイル検索（8フィールド横断検索）
+POST /buildings_table_2/mysql-search
+Body: { query: string, page: number, limit: number }
+Response: { data: Building[], count: number, page: number, totalPages: number }
 ```
 
 #### 5.1.2 建築家取得
@@ -477,6 +487,12 @@ buildings_table_2 (1) ←→ (N) photos
 -- 検索パフォーマンス向上のためのインデックス
 CREATE INDEX idx_buildings_location ON buildings_table_2(lat, lng);
 CREATE INDEX idx_buildings_title ON buildings_table_2(title);
+CREATE INDEX idx_buildings_title_en ON buildings_table_2(titleEn);
+CREATE INDEX idx_buildings_building_types ON buildings_table_2(buildingTypes);
+CREATE INDEX idx_buildings_building_types_en ON buildings_table_2(buildingTypesEn);
+CREATE INDEX idx_buildings_location_en ON buildings_table_2(locationEn_from_datasheetChunkEn);
+CREATE INDEX idx_buildings_architect_names_ja ON buildings_table_2(architect_names_ja);
+CREATE INDEX idx_buildings_architect_names_en ON buildings_table_2(architect_names_en);
 CREATE INDEX idx_buildings_architect ON buildings_table_2(architect_details);
 CREATE INDEX idx_buildings_completion_year ON buildings_table_2(completion_years);
 CREATE INDEX idx_buildings_prefectures ON buildings_table_2(prefectures);
@@ -501,10 +517,13 @@ CREATE INDEX idx_buildings_type_location ON buildings_table_2(buildingTypes, lat
 CREATE INDEX idx_building_architects_composite ON building_architects(building_id, architect_id);
 CREATE INDEX idx_architect_compositions_composite ON architect_compositions(architect_id, individual_architect_id);
 
--- 全文検索インデックス
-CREATE INDEX idx_buildings_fulltext_ja ON buildings_table_2 USING gin(to_tsvector('japanese', title || ' ' || architectDetails));
-CREATE INDEX idx_buildings_fulltext_en ON buildings_table_2 USING gin(to_tsvector('english', titleEn || ' ' || architectDetails));
+-- 全文検索インデックス（横断検索対応）
+CREATE INDEX idx_buildings_fulltext_ja ON buildings_table_2 USING gin(to_tsvector('japanese', title || ' ' || buildingTypes || ' ' || location || ' ' || architect_names_ja));
+CREATE INDEX idx_buildings_fulltext_en ON buildings_table_2 USING gin(to_tsvector('english', titleEn || ' ' || buildingTypesEn || ' ' || locationEn_from_datasheetChunkEn || ' ' || architect_names_en));
 CREATE INDEX idx_individual_architects_fulltext ON individual_architects USING gin(to_tsvector('japanese', name_ja || ' ' || name_en));
+
+-- 横断検索用の複合インデックス
+CREATE INDEX idx_buildings_cross_search ON buildings_table_2(title, titleEn, buildingTypes, buildingTypesEn, location, locationEn_from_datasheetChunkEn, architect_names_ja, architect_names_en);
 ```
 
 ## 8. セキュリティ
@@ -584,15 +603,40 @@ npm run preview
 - **リンター**: ESLintによるコード品質チェック
 - **手動テスト**: 主要機能の動作確認
 
-## 13. 今後の拡張予定
+## 13. 検索機能の詳細仕様
 
-### 13.1 機能拡張
+### 13.1 横断検索システム
+- **検索対象フィールド**: 8つのフィールドを横断
+  - `title` (建築物名日本語)
+  - `titleEn` (建築物名英語)
+  - `buildingTypes` (建物用途日本語)
+  - `buildingTypesEn` (建物用途英語)
+  - `location` (所在地日本語)
+  - `locationEn_from_datasheetChunkEn` (所在地英語)
+  - `architect_names_ja` (建築家名日本語)
+  - `architect_names_en` (建築家名英語)
+
+### 13.2 AND検索ロジック
+- **キーワード分割**: 全角・半角スペースで分割
+- **検索条件**: 各キーワードは8フィールドでOR検索
+- **結合条件**: キーワード間はAND条件で結合
+- **例**: `安藤忠雄 住宅` → 安藤忠雄が含まれ、かつ住宅が含まれる建物
+
+### 13.3 パフォーマンス最適化
+- **ページネーション**: 大量データ対応
+- **リトライ機能**: エラー時の自動再試行
+- **並列処理**: 複数フィールドの効率的検索
+- **キャッシュ**: 検索結果の最適化
+
+## 14. 今後の拡張予定
+
+### 14.1 機能拡張
 - **ユーザー認証**: 完全なログイン・登録機能
 - **コメント機能**: 建築物へのコメント投稿
 - **評価機能**: 建築物の評価・レビュー
 - **ソーシャル機能**: シェア・フォロー機能
 
-### 13.2 技術的改善
+### 14.2 技術的改善
 - **PWA対応**: オフライン対応
 - **SEO最適化**: メタデータの充実
 - **アクセシビリティ**: WCAG準拠
@@ -602,4 +646,22 @@ npm run preview
 
 **作成日**: 2024年12月19日  
 **最終更新**: 2024年12月19日  
-**ステータス**: Production Ready ✅ 
+**ステータス**: Production Ready ✅
+
+## 更新履歴
+
+### v2.3.0 (2024年12月19日)
+- **新機能**: 横断検索システムの実装
+  - 8つのフィールドを横断した包括的検索
+  - 建築物名、建物用途、所在地、建築家名の日本語・英語対応
+- **新機能**: AND検索の実装
+  - 全角・半角スペース区切りによる複数キーワード検索
+  - 各キーワードは8フィールドでOR検索、キーワード間はAND条件
+- **改善**: 検索パフォーマンスの最適化
+  - ページネーション対応
+  - リトライ機能付きエラーハンドリング
+  - uid降順でのソート
+- **簡素化**: UIの簡素化
+  - 詳細検索からメディア項目のみ残す
+  - 右サイドバーからマップと人気の検索のみ表示
+  - 最近の検索機能を削除 

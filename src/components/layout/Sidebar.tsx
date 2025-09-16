@@ -1,8 +1,7 @@
 import React from 'react';
 import Map from '../Map';
-import { LikedBuildings } from '../LikedBuildings';
 import { SearchHistoryComponent } from '../SearchHistory';
-import { Building, SearchHistory, LikedBuilding } from '../../types';
+import { Building, SearchHistory } from '../../types';
 
 interface SidebarProps {
   buildings: Building[];
@@ -12,16 +11,11 @@ interface SidebarProps {
   language: 'ja' | 'en';
   startIndex: number;
   onSearchAround: (lat: number, lng: number) => void;
-  likedBuildings: LikedBuilding[];
-  onLikedBuildingClick: (buildingId: number) => void;
-  onRemoveLikedBuilding?: (buildingId: number) => void;
-  recentSearches: SearchHistory[];
   popularSearches: SearchHistory[];
   popularSearchesLoading?: boolean;
   popularSearchesError?: string | null;
   onSearchClick: (query: string) => void;
   onFilterSearchClick?: (filters: Partial<SearchHistory['filters']>) => void;
-  onRemoveRecentSearch?: (index: number) => void;
   showAdminPanel?: boolean;
 }
 
@@ -33,16 +27,11 @@ function SidebarComponent({
   language,
   startIndex,
   onSearchAround,
-  likedBuildings,
-  onLikedBuildingClick,
-  onRemoveLikedBuilding,
-  recentSearches,
   popularSearches,
   popularSearchesLoading = false,
   popularSearchesError = null,
   onSearchClick,
   onFilterSearchClick,
-  onRemoveRecentSearch,
   showAdminPanel = false
 }: SidebarProps) {
   return (
@@ -59,22 +48,13 @@ function SidebarComponent({
         />
       </div>
       
-      <LikedBuildings
-        likedBuildings={likedBuildings}
-        language={language}
-        onBuildingClick={onLikedBuildingClick}
-        onRemoveBuilding={onRemoveLikedBuilding}
-      />
-      
       <SearchHistoryComponent
-        recentSearches={recentSearches}
         popularSearches={popularSearches}
         popularSearchesLoading={popularSearchesLoading}
         popularSearchesError={popularSearchesError}
         language={language}
         onSearchClick={onSearchClick}
         onFilterSearchClick={onFilterSearchClick}
-        onRemoveRecentSearch={onRemoveRecentSearch}
       />
     </div>
   );
@@ -92,13 +72,9 @@ const arePropsEqual = (prevProps: SidebarProps, nextProps: SidebarProps): boolea
     prevProps.currentLocation?.lng === nextProps.currentLocation?.lng &&
     prevProps.language === nextProps.language &&
     prevProps.startIndex === nextProps.startIndex &&
-    (prevProps.likedBuildings?.length ?? 0) === (nextProps.likedBuildings?.length ?? 0) &&
-    (prevProps.recentSearches?.length ?? 0) === (nextProps.recentSearches?.length ?? 0) &&
     (prevProps.popularSearches?.length ?? 0) === (nextProps.popularSearches?.length ?? 0) &&
     prevProps.onBuildingSelect === nextProps.onBuildingSelect &&
     prevProps.onSearchAround === nextProps.onSearchAround &&
-    prevProps.onLikedBuildingClick === nextProps.onLikedBuildingClick &&
-    prevProps.onRemoveLikedBuilding === nextProps.onRemoveLikedBuilding &&
     prevProps.onSearchClick === nextProps.onSearchClick &&
     prevProps.showAdminPanel === nextProps.showAdminPanel
   );
