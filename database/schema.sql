@@ -77,22 +77,8 @@ CREATE TABLE building_architects (
     FOREIGN KEY (architect_id) REFERENCES architects_table(architect_id) ON DELETE CASCADE
 );
 
--- 建築家ウェブサイトテーブル
-CREATE TABLE architect_websites_3 (
-    website_id INT AUTO_INCREMENT PRIMARY KEY,
-    architect_id INT NOT NULL,
-    url TEXT,
-    title VARCHAR(255),
-    architectJa VARCHAR(255) NOT NULL,
-    architectEn VARCHAR(255),
-    invalid BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    -- 制約
-    CONSTRAINT chk_url_format CHECK (url IS NULL OR url REGEXP '^https?://'),
-    CONSTRAINT chk_architect_names CHECK (architectJa != '' OR architectEn != ''),
-    FOREIGN KEY (architect_id) REFERENCES architects_table(architect_id) ON DELETE CASCADE
-);
+-- 建築家ウェブサイトテーブル（現在は使用されていません）
+-- individual_architects_3テーブルにwebsite関連のカラムが含まれています
 
 -- 写真テーブル
 CREATE TABLE photos (
@@ -145,7 +131,7 @@ CREATE INDEX idx_building_architects_building ON building_architects(building_id
 CREATE INDEX idx_building_architects_architect ON building_architects(architect_id);
 CREATE INDEX idx_architect_compositions_architect ON architect_compositions(architect_id);
 CREATE INDEX idx_architect_compositions_individual ON architect_compositions(individual_architect_id);
-CREATE INDEX idx_architect_websites_architect ON architect_websites_3(architect_id);
+-- architect_websites_3テーブルは存在しないため、インデックスも不要
 
 -- 複合インデックス
 CREATE INDEX idx_buildings_search ON buildings_table_2(prefectures, completionYears, lat, lng);
@@ -158,3 +144,4 @@ CREATE INDEX idx_architect_compositions_composite ON architect_compositions(arch
 -- CREATE FULLTEXT INDEX idx_buildings_fulltext_ja ON buildings_table_2(title, buildingTypes, location, architectDetails);
 -- CREATE FULLTEXT INDEX idx_buildings_fulltext_en ON buildings_table_2(titleEn, buildingTypesEn, locationEn);
 -- CREATE FULLTEXT INDEX idx_individual_architects_fulltext ON individual_architects(name_ja, name_en);
+

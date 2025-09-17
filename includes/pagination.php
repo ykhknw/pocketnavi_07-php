@@ -37,3 +37,4 @@
     <?php echo $lang === 'ja' ? 'ページ' : 'Page'; ?> <?php echo $page; ?> / <?php echo $totalPages; ?>
     (<?php echo $totalBuildings; ?> <?php echo $lang === 'ja' ? '件' : 'items'; ?>)
 </div>
+

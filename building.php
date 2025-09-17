@@ -2,6 +2,7 @@
 // 建築物詳細ページ
 require_once 'config/database.php';
 require_once 'includes/functions.php';
+require_once 'includes/functions_new.php';
 
 // 言語設定
 $lang = isset($_GET['lang']) && in_array($_GET['lang'], ['ja', 'en']) ? $_GET['lang'] : 'ja';
@@ -13,8 +14,33 @@ if (!$slug) {
     exit;
 }
 
-$building = getBuildingBySlug($slug, $lang);
+$building = getBuildingBySlugNew($slug, $lang);
+
+// デバッグ情報
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    echo "<!-- Debug: Looking for slug: " . htmlspecialchars($slug) . " -->";
+    echo "<!-- Debug: Building found: " . ($building ? 'Yes' : 'No') . " -->";
+    
+    // データベースで直接確認
+    $db = getDB();
+    $testStmt = $db->prepare("SELECT building_id, slug, title FROM buildings_table_2 WHERE slug = ? LIMIT 5");
+    $testStmt->execute([$slug]);
+    $testResults = $testStmt->fetchAll();
+    echo "<!-- Debug: Direct DB query results: " . print_r($testResults, true) . " -->";
+    
+    if ($building) {
+        echo "<!-- Debug: Building data: " . print_r($building, true) . " -->";
+    }
+}
+
 if (!$building) {
+    // デバッグモードの場合はエラーメッセージを表示
+    if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+        echo "<h1>建築物が見つかりませんでした</h1>";
+        echo "<p>スラッグ: " . htmlspecialchars($slug) . "</p>";
+        echo "<p><a href='index.php?lang=" . $lang . "'>検索ページに戻る</a></p>";
+        exit;
+    }
     header('Location: index.php?lang=' . $lang);
     exit;
 }
@@ -98,13 +124,22 @@ $photos = [];
                                 <?php endif; ?>
                                 
                                 <!-- Location -->
-                                <?php if ($building['location']): ?>
+                                <?php 
+                                $location = $lang === 'ja' ? $building['location'] : $building['locationEn'];
+                                
+                                // デバッグ情報（開発時のみ）
+                                if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+                                    echo "<!-- Debug Location: lang=" . $lang . ", location=" . htmlspecialchars($building['location']) . ", locationEn=" . htmlspecialchars($building['locationEn']) . " -->";
+                                }
+                                
+                                if ($location): 
+                                ?>
                                     <div class="mb-3">
                                         <h6 class="text-muted mb-1">
                                             <i class="fas fa-map-marker-alt me-1"></i>
                                             <?php echo t('location', $lang); ?>
                                         </h6>
-                                        <p class="mb-0"><?php echo htmlspecialchars($lang === 'ja' ? $building['location'] : $building['locationEn']); ?></p>
+                                        <p class="mb-0"><?php echo htmlspecialchars($location); ?></p>
                                     </div>
                                 <?php endif; ?>
                                 
@@ -120,14 +155,17 @@ $photos = [];
                                 <?php endif; ?>
                                 
                                 <!-- Building Types -->
-                                <?php if (!empty($building['buildingTypes'])): ?>
+                                <?php 
+                                $buildingTypes = $lang === 'ja' ? $building['buildingTypes'] : $building['buildingTypesEn'];
+                                if (!empty($buildingTypes)): 
+                                ?>
                                     <div class="mb-3">
                                         <h6 class="text-muted mb-1">
                                             <i class="fas fa-building me-1"></i>
                                             <?php echo t('buildingTypes', $lang); ?>
                                         </h6>
                                         <div class="d-flex flex-wrap gap-1">
-                                            <?php foreach ($building['buildingTypes'] as $type): ?>
+                                            <?php foreach ($buildingTypes as $type): ?>
                                                 <span class="badge bg-primary"><?php echo htmlspecialchars($type); ?></span>
                                             <?php endforeach; ?>
                                         </div>
@@ -228,3 +266,4 @@ $photos = [];
     </script>
 </body>
 </html>
+

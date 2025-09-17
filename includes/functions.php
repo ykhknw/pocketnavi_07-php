@@ -71,11 +71,11 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
             b.prefecturesEn,
             b.areas,
             b.location,
-            b.locationEn,
+            b.locationEn_from_datasheetChunkEn as locationEn,
             b.architectDetails,
             b.lat,
             b.lng,
-            b.likes,
+            0 as likes,
             b.created_at,
             b.updated_at,
             GROUP_CONCAT(DISTINCT ia.name_ja ORDER BY ac.order_index SEPARATOR '　') as architect_names_ja,
@@ -83,8 +83,8 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
             GROUP_CONCAT(DISTINCT ia.slug ORDER BY ac.order_index SEPARATOR ',') as architect_slugs
         FROM buildings_table_2 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
-        LEFT JOIN architect_compositions ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN individual_architects ia ON ac.individual_architect_id = ia.individual_architect_id
+        LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
         WHERE {$whereClause}
         GROUP BY b.building_id
         ORDER BY b.building_id DESC
@@ -96,12 +96,17 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
         SELECT COUNT(DISTINCT b.building_id) as total
         FROM buildings_table_2 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
-        LEFT JOIN architect_compositions ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN individual_architects ia ON ac.individual_architect_id = ia.individual_architect_id
+        LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
         WHERE {$whereClause}
     ";
     
     try {
+        // デバッグ情報を出力
+        error_log("Search query: " . $query);
+        error_log("Search SQL: " . $sql);
+        error_log("Search params: " . print_r($params, true));
+        
         // 総件数取得
         $countStmt = $db->prepare($countSql);
         foreach ($params as $key => $value) {
@@ -109,6 +114,8 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
         }
         $countStmt->execute();
         $total = $countStmt->fetch()['total'];
+        
+        error_log("Total count: " . $total);
         
         // データ取得
         $stmt = $db->prepare($sql);
@@ -120,9 +127,13 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
         $stmt->execute();
         
         $buildings = [];
+        $rowCount = 0;
         while ($row = $stmt->fetch()) {
             $buildings[] = transformBuildingData($row, $lang);
+            $rowCount++;
         }
+        
+        error_log("Fetched rows: " . $rowCount);
         
         return [
             'buildings' => $buildings,
@@ -158,11 +169,11 @@ function getRecentBuildings($limit = 20, $lang = 'ja') {
             b.prefecturesEn,
             b.areas,
             b.location,
-            b.locationEn,
+            b.locationEn_from_datasheetChunkEn as locationEn,
             b.architectDetails,
             b.lat,
             b.lng,
-            b.likes,
+            0 as likes,
             b.created_at,
             b.updated_at,
             GROUP_CONCAT(DISTINCT ia.name_ja ORDER BY ac.order_index SEPARATOR '　') as architect_names_ja,
@@ -170,8 +181,8 @@ function getRecentBuildings($limit = 20, $lang = 'ja') {
             GROUP_CONCAT(DISTINCT ia.slug ORDER BY ac.order_index SEPARATOR ',') as architect_slugs
         FROM buildings_table_2 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
-        LEFT JOIN architect_compositions ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN individual_architects ia ON ac.individual_architect_id = ia.individual_architect_id
+        LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
         WHERE b.lat IS NOT NULL AND b.lng IS NOT NULL
         GROUP BY b.building_id
         ORDER BY b.building_id DESC
@@ -194,6 +205,15 @@ function getRecentBuildings($limit = 20, $lang = 'ja') {
         error_log("Recent buildings error: " . $e->getMessage());
         return [];
     }
+}
+
+/**
+ * 年数を数値に変換
+ */
+function parseYear($year) {
+    if (!$year) return null;
+    $parsed = intval($year);
+    return $parsed > 0 ? $parsed : null;
 }
 
 /**
@@ -236,7 +256,7 @@ function transformBuildingData($row, $lang = 'ja') {
         'titleEn' => $row['titleEn'] ?: $row['title'],
         'thumbnailUrl' => $row['thumbnailUrl'] ?: '',
         'youtubeUrl' => $row['youtubeUrl'] ?: '',
-        'completionYears' => $row['completionYears'] ?: null,
+        'completionYears' => parseYear($row['completionYears']),
         'buildingTypes' => $buildingTypes,
         'buildingTypesEn' => $buildingTypesEn,
         'prefectures' => $row['prefectures'] ?: '',
@@ -277,11 +297,11 @@ function getBuildingBySlug($slug, $lang = 'ja') {
             b.prefecturesEn,
             b.areas,
             b.location,
-            b.locationEn,
+            b.locationEn_from_datasheetChunkEn as locationEn,
             b.architectDetails,
             b.lat,
             b.lng,
-            b.likes,
+            0 as likes,
             b.created_at,
             b.updated_at,
             GROUP_CONCAT(DISTINCT ia.name_ja ORDER BY ac.order_index SEPARATOR '　') as architect_names_ja,
@@ -289,8 +309,8 @@ function getBuildingBySlug($slug, $lang = 'ja') {
             GROUP_CONCAT(DISTINCT ia.slug ORDER BY ac.order_index SEPARATOR ',') as architect_slugs
         FROM buildings_table_2 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
-        LEFT JOIN architect_compositions ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN individual_architects ia ON ac.individual_architect_id = ia.individual_architect_id
+        LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
         WHERE b.slug = :slug OR b.uid = :slug
         GROUP BY b.building_id
         LIMIT 1
@@ -325,6 +345,74 @@ function getPopularSearches($lang = 'ja') {
         ['query' => '東京', 'count' => 32],
         ['query' => '現代建築', 'count' => 28]
     ];
+}
+
+/**
+ * デバッグ用：データベースの状況を確認
+ */
+function debugDatabase() {
+    $db = getDB();
+    
+    try {
+        // 建築物の総数
+        $stmt = $db->query("SELECT COUNT(*) as total FROM buildings_table_2");
+        $buildingCount = $stmt->fetch()['total'];
+        
+        // 座標がある建築物の数
+        $stmt = $db->query("SELECT COUNT(*) as total FROM buildings_table_2 WHERE lat IS NOT NULL AND lng IS NOT NULL");
+        $buildingWithCoords = $stmt->fetch()['total'];
+        
+        // 東京を含む建築物の数
+        $stmt = $db->query("SELECT COUNT(*) as total FROM buildings_table_2 WHERE location LIKE '%東京%' OR prefectures LIKE '%東京%'");
+        $tokyoBuildings = $stmt->fetch()['total'];
+        
+        // サンプルデータの確認
+        $stmt = $db->query("SELECT building_id, title, location, prefectures, lat, lng FROM buildings_table_2 LIMIT 5");
+        $sampleData = $stmt->fetchAll();
+        
+        // 検索クエリのテスト
+        $testQuery = "東京";
+        $stmt = $db->prepare("
+            SELECT COUNT(*) as total 
+            FROM buildings_table_2 b
+            LEFT JOIN building_architects ba ON b.building_id = ba.building_id
+            LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
+            LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
+            WHERE (
+                b.title LIKE :keyword OR
+                b.titleEn LIKE :keyword OR
+                b.buildingTypes LIKE :keyword OR
+                b.buildingTypesEn LIKE :keyword OR
+                b.location LIKE :keyword OR
+                b.locationEn_from_datasheetChunkEn LIKE :keyword OR
+                b.architectDetails LIKE :keyword OR
+                ia.name_ja LIKE :keyword OR
+                ia.name_en LIKE :keyword
+            ) AND b.lat IS NOT NULL AND b.lng IS NOT NULL
+        ");
+        $stmt->bindValue(':keyword', "%{$testQuery}%");
+        $stmt->execute();
+        $searchTestResult = $stmt->fetch()['total'];
+        
+        error_log("Database Debug Info:");
+        error_log("Total buildings: " . $buildingCount);
+        error_log("Buildings with coordinates: " . $buildingWithCoords);
+        error_log("Tokyo buildings: " . $tokyoBuildings);
+        error_log("Search test result: " . $searchTestResult);
+        error_log("Sample data: " . print_r($sampleData, true));
+        
+        return [
+            'total_buildings' => $buildingCount,
+            'buildings_with_coords' => $buildingWithCoords,
+            'tokyo_buildings' => $tokyoBuildings,
+            'search_test_result' => $searchTestResult,
+            'sample_data' => $sampleData
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("Debug database error: " . $e->getMessage());
+        return null;
+    }
 }
 
 /**
@@ -403,3 +491,4 @@ function getPaginationRange($currentPage, $totalPages, $maxVisible = 5) {
     return range($start, $end);
 }
 ?>
+

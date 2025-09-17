@@ -37,7 +37,7 @@ function addMarkers(buildings) {
     markers = [];
     
     buildings.forEach((building, index) => {
-        if (building.lat && building.lng) {
+        if (building.lat && building.lng && building.lat !== 0 && building.lng !== 0) {
             const isDetailView = buildings.length === 1;
             
             let icon;
@@ -80,19 +80,6 @@ function createPopupContent(building) {
     const title = lang === 'ja' ? building.title : building.titleEn;
     const location = lang === 'ja' ? building.location : building.locationEn;
     
-    let architectsHtml = '';
-    if (building.architects && building.architects.length > 0) {
-        const architectNames = building.architects.map(architect => 
-            lang === 'ja' ? architect.architectJa : architect.architectEn
-        );
-        architectsHtml = `
-            <div style="margin-top: 8px;">
-                <strong>${lang === 'ja' ? '建築家' : 'Architect'}:</strong><br>
-                ${architectNames.join(', ')}
-            </div>
-        `;
-    }
-    
     return `
         <div style="padding: 8px; min-width: 200px;">
             <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">
@@ -102,7 +89,6 @@ function createPopupContent(building) {
                 </a>
             </h3>
             ${location ? `<div style="margin-bottom: 8px;"><strong>${lang === 'ja' ? '所在地' : 'Location'}:</strong> ${location}</div>` : ''}
-            ${architectsHtml}
         </div>
     `;
 }
@@ -188,21 +174,48 @@ function openVideo(url) {
 document.addEventListener('DOMContentLoaded', function() {
     // 建築物データの取得
     const buildingCards = document.querySelectorAll('.building-card');
-    const buildings = Array.from(buildingCards).map(card => {
-        const buildingId = card.dataset.buildingId;
-        // 実際のアプリでは、サーバーから建築物データを取得
-        return {
-            id: buildingId,
-            lat: parseFloat(card.dataset.lat) || 0,
-            lng: parseFloat(card.dataset.lng) || 0,
-            title: card.querySelector('.card-title a').textContent,
-            slug: card.querySelector('.card-title a').href.split('slug=')[1]?.split('&')[0] || ''
-        };
-    });
+    console.log('Found building cards:', buildingCards.length); // デバッグ用
+    
+    const buildings = Array.from(buildingCards).map((card, index) => {
+        console.log(`Card ${index}:`, {
+            lat: card.dataset.lat,
+            lng: card.dataset.lng,
+            title: card.dataset.title,
+            titleEn: card.dataset['title-en']
+        }); // デバッグ用
+        
+        const lat = parseFloat(card.dataset.lat);
+        const lng = parseFloat(card.dataset.lng);
+        
+        // 座標が有効な場合のみ建築物データに含める
+        if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+            return {
+                building_id: card.dataset.buildingId,
+                lat: lat,
+                lng: lng,
+                title: card.dataset.title,
+                titleEn: card.dataset['title-en'], // ハイフンを含む属性名は角括弧でアクセス
+                location: card.dataset.location,
+                locationEn: card.dataset['location-en'], // ハイフンを含む属性名は角括弧でアクセス
+                slug: card.dataset.slug
+            };
+        }
+        return null;
+    }).filter(building => building !== null);
+    
+    console.log('Buildings for map:', buildings); // デバッグ用
     
     // 地図の初期化
     if (document.getElementById('map')) {
-        initMap([35.6762, 139.6503], buildings);
+        if (buildings.length > 0) {
+            // 建築物がある場合は、最初の建築物を中心に設定
+            const centerLat = buildings[0].lat;
+            const centerLng = buildings[0].lng;
+            initMap([centerLat, centerLng], buildings);
+        } else {
+            // 建築物がない場合は東京を中心に設定
+            initMap([35.6762, 139.6503], []);
+        }
     }
     
     // 検索フォームの送信
@@ -240,3 +253,4 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+

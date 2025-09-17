@@ -1,5 +1,19 @@
+<?php 
+// デバッグ用：建築物データの構造を確認
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    echo "<!-- Building data debug: " . print_r($building, true) . " -->";
+}
+?>
 <!-- Building Card -->
-<div class="card h-100 building-card" data-building-id="<?php echo $building['id']; ?>">
+<div class="card h-100 building-card" 
+     data-building-id="<?php echo htmlspecialchars($building['building_id'] ?? ''); ?>"
+     data-lat="<?php echo htmlspecialchars($building['lat'] ?? ''); ?>"
+     data-lng="<?php echo htmlspecialchars($building['lng'] ?? ''); ?>"
+     data-title="<?php echo htmlspecialchars($building['title'] ?? ''); ?>"
+     data-title-en="<?php echo htmlspecialchars($building['titleEn'] ?? ''); ?>"
+     data-location="<?php echo htmlspecialchars($building['location'] ?? ''); ?>"
+     data-location-en="<?php echo htmlspecialchars($building['locationEn'] ?? ''); ?>"
+     data-slug="<?php echo htmlspecialchars($building['slug'] ?? ''); ?>">
     <?php if ($building['thumbnailUrl']): ?>
         <img src="<?php echo htmlspecialchars($building['thumbnailUrl']); ?>" 
              class="card-img-top" 
@@ -87,3 +101,4 @@
         </div>
     </div>
 </div>
+

@@ -2,6 +2,7 @@
 // PocketNavi PHP版 - メインページ
 require_once 'config/database.php';
 require_once 'includes/functions.php';
+require_once 'includes/functions_new.php';
 
 // 言語設定（URLクエリパラメータから取得）
 $lang = isset($_GET['lang']) && in_array($_GET['lang'], ['ja', 'en']) ? $_GET['lang'] : 'ja';
@@ -18,7 +19,8 @@ $totalBuildings = 0;
 $totalPages = 0;
 
 if ($query) {
-    $searchResult = searchBuildings($query, $page, $hasPhotos, $hasVideos, $lang);
+    // 新しい検索関数を使用
+    $searchResult = searchBuildingsNew($query, $page, $hasPhotos, $hasVideos, $lang);
     $buildings = $searchResult['buildings'];
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
@@ -31,6 +33,12 @@ if ($query) {
 
 // 人気検索の取得
 $popularSearches = getPopularSearches($lang);
+
+// デバッグ情報の取得（開発時のみ）
+$debugInfo = null;
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    $debugInfo = debugDatabase();
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
@@ -41,6 +49,8 @@ $popularSearches = getPopularSearches($lang);
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Custom CSS -->
@@ -60,12 +70,43 @@ $popularSearches = getPopularSearches($lang);
                 <!-- Search Form -->
                 <?php include 'includes/search_form.php'; ?>
                 
+                <!-- Debug Information -->
+                <?php if ($debugInfo): ?>
+                    <div class="alert alert-warning">
+                        <h6>デバッグ情報:</h6>
+                        <ul>
+                            <li>総建築物数: <?php echo $debugInfo['total_buildings']; ?></li>
+                            <li>座標がある建築物数: <?php echo $debugInfo['buildings_with_coords']; ?></li>
+                            <li>東京の建築物数: <?php echo $debugInfo['tokyo_buildings']; ?></li>
+                            <li>検索テスト結果: <?php echo $debugInfo['search_test_result']; ?></li>
+                        </ul>
+                        <small>URLに?debug=1を追加するとこの情報が表示されます</small>
+                    </div>
+                <?php endif; ?>
+                
+                <!-- Search Debug Information -->
+                <?php if ($query && isset($_GET['debug'])): ?>
+                    <div class="alert alert-info">
+                        <h6>検索デバッグ情報:</h6>
+                        <ul>
+                            <li>検索クエリ: "<?php echo htmlspecialchars($query); ?>"</li>
+                            <li>検索結果数: <?php echo count($buildings); ?></li>
+                            <li>総件数: <?php echo $totalBuildings; ?></li>
+                            <li>ページ: <?php echo $page; ?></li>
+                        </ul>
+                        <p><strong>注意:</strong> エラーログを確認してください（通常は C:\xampp\apache\logs\error.log）</p>
+                    </div>
+                <?php endif; ?>
+                
                 <!-- Building Cards -->
                 <div class="row" id="building-cards">
                     <?php if (empty($buildings)): ?>
                         <div class="col-12">
                             <div class="alert alert-info text-center">
                                 <?php echo $lang === 'ja' ? '建築物が見つかりませんでした。' : 'No buildings found.'; ?>
+                                <?php if ($query): ?>
+                                    <br><small>検索キーワード: "<?php echo htmlspecialchars($query); ?>"</small>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php else: ?>
@@ -101,3 +142,4 @@ $popularSearches = getPopularSearches($lang);
     <script src="assets/js/main.js"></script>
 </body>
 </html>
+
