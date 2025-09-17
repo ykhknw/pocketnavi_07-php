@@ -98,6 +98,33 @@
     font-size: 10px;
 }
 
+/* 建築年バッジ */
+.completion-year-badge {
+    background-color: #ffffff !important;
+    color: #6c757d !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 16px !important;
+    padding: 4px 12px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 2px rgba(108, 117, 125, 0.1) !important;
+}
+
+.completion-year-badge:hover {
+    background-color: #f8f9fa;
+    border-color: #ced4da;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.15);
+}
+
+.completion-year-badge i {
+    font-size: 10px;
+}
+
 /* 基本スタイル */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
