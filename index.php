@@ -17,18 +17,23 @@ $hasVideos = isset($_GET['videos']) ? (bool)$_GET['videos'] : false;
 $buildings = [];
 $totalBuildings = 0;
 $totalPages = 0;
+$currentPage = $page;
+$limit = 10;
 
 if ($query) {
     // 新しい検索関数を使用
-    $searchResult = searchBuildingsNew($query, $page, $hasPhotos, $hasVideos, $lang);
+    $searchResult = searchBuildingsNew($query, $page, $hasPhotos, $hasVideos, $lang, $limit);
     $buildings = $searchResult['buildings'];
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
+    $currentPage = $searchResult['currentPage'];
 } else {
-    // 初期表示：最近の建築物を取得
-    $buildings = getRecentBuildings(20, $lang);
-    $totalBuildings = count($buildings);
-    $totalPages = 1;
+    // トップページ：has_photo優先順序で建築物を取得
+    $searchResult = searchBuildingsNew('', $page, false, false, $lang, $limit);
+    $buildings = $searchResult['buildings'];
+    $totalBuildings = $searchResult['total'];
+    $totalPages = $searchResult['totalPages'];
+    $currentPage = $searchResult['currentPage'];
 }
 
 // 人気検索の取得
@@ -57,7 +62,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     <link rel="stylesheet" href="assets/css/style.css">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="icon" href="assets/images/landmark.svg" type="image/svg+xml">
 </head>
 <body>
     <!-- Header -->

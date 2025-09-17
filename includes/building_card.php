@@ -14,7 +14,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
      data-location="<?php echo htmlspecialchars($building['location'] ?? ''); ?>"
      data-location-en="<?php echo htmlspecialchars($building['locationEn'] ?? ''); ?>"
      data-slug="<?php echo htmlspecialchars($building['slug'] ?? ''); ?>">
-    <?php if ($building['thumbnailUrl']): ?>
+    <?php if (!empty($building['thumbnailUrl'])): ?>
         <img src="<?php echo htmlspecialchars($building['thumbnailUrl']); ?>" 
              class="card-img-top" 
              alt="<?php echo htmlspecialchars($building['title']); ?>"
@@ -22,7 +22,9 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     <?php else: ?>
         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
              style="height: 200px;">
-            <i class="fas fa-building fa-3x text-muted"></i>
+            <img src="assets/images/landmark.svg" 
+                 alt="PocketNavi" 
+                 style="width: 80px; height: 80px; opacity: 0.3;">
         </div>
     <?php endif; ?>
     

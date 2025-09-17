@@ -65,7 +65,7 @@ $photos = [];
     <link rel="stylesheet" href="assets/css/style.css">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="icon" href="assets/images/landmark.svg" type="image/svg+xml">
 </head>
 <body>
     <!-- Header -->
@@ -89,14 +89,16 @@ $photos = [];
                 <div class="row">
                     <!-- Main Image -->
                     <div class="col-md-6 mb-4">
-                        <?php if ($building['thumbnailUrl']): ?>
+                        <?php if (!empty($building['thumbnailUrl'])): ?>
                             <img src="<?php echo htmlspecialchars($building['thumbnailUrl']); ?>" 
                                  class="img-fluid rounded" 
                                  alt="<?php echo htmlspecialchars($building['title']); ?>">
                         <?php else: ?>
                             <div class="bg-light rounded d-flex align-items-center justify-content-center" 
                                  style="height: 300px;">
-                                <i class="fas fa-building fa-4x text-muted"></i>
+                                <img src="assets/images/landmark.svg" 
+                                     alt="PocketNavi" 
+                                     style="width: 120px; height: 120px; opacity: 0.3;">
                             </div>
                         <?php endif; ?>
                     </div>
@@ -190,7 +192,7 @@ $photos = [];
                                         <?php echo t('photos', $lang); ?> / <?php echo t('videos', $lang); ?>
                                     </h6>
                                     <div class="d-flex gap-2">
-                                        <?php if ($building['thumbnailUrl']): ?>
+                                        <?php if (!empty($building['thumbnailUrl'])): ?>
                                             <span class="badge bg-success">
                                                 <i class="fas fa-image me-1"></i>
                                                 <?php echo t('photos', $lang); ?>
@@ -204,7 +206,7 @@ $photos = [];
                                             </span>
                                         <?php endif; ?>
                                         
-                                        <?php if (!$building['thumbnailUrl'] && !$building['youtubeUrl']): ?>
+                                        <?php if (empty($building['thumbnailUrl']) && !$building['youtubeUrl']): ?>
                                             <span class="text-muted"><?php echo $lang === 'ja' ? 'なし' : 'None'; ?></span>
                                         <?php endif; ?>
                                     </div>
@@ -215,9 +217,35 @@ $photos = [];
                                     <div class="mt-3">
                                         <h6 class="text-muted mb-2"><?php echo t('videos', $lang); ?></h6>
                                         <div class="ratio ratio-16x9">
-                                            <iframe src="<?php echo htmlspecialchars($building['youtubeUrl']); ?>" 
+                                            <?php
+                                            // YouTube URLを埋め込み用URLに変換
+                                            $youtubeUrl = $building['youtubeUrl'];
+                                            $embedUrl = '';
+                                            
+                                            // 既に埋め込み用URLの場合
+                                            if (strpos($youtubeUrl, 'embed/') !== false) {
+                                                $embedUrl = $youtubeUrl;
+                                            }
+                                            // YouTube Shorts URLの場合
+                                            elseif (preg_match('/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/', $youtubeUrl, $matches)) {
+                                                $videoId = $matches[1];
+                                                $embedUrl = 'https://www.youtube.com/embed/' . $videoId;
+                                            }
+                                            // 通常のYouTube URLの場合
+                                            elseif (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/', $youtubeUrl, $matches)) {
+                                                $videoId = $matches[1];
+                                                $embedUrl = 'https://www.youtube.com/embed/' . $videoId;
+                                            }
+                                            // その他の場合は元のURLをそのまま使用
+                                            else {
+                                                $embedUrl = $youtubeUrl;
+                                            }
+                                            ?>
+                                            <iframe src="<?php echo htmlspecialchars($embedUrl); ?>" 
                                                     title="<?php echo htmlspecialchars($building['title']); ?>" 
-                                                    allowfullscreen></iframe>
+                                                    allowfullscreen
+                                                    frameborder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
                                         </div>
                                     </div>
                                 <?php endif; ?>
@@ -232,12 +260,6 @@ $photos = [];
                 <div class="sticky-top" style="top: 20px;">
                     <!-- Map -->
                     <div class="card mb-4">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-map me-2"></i>
-                                <?php echo $lang === 'ja' ? '地図' : 'Map'; ?>
-                            </h6>
-                        </div>
                         <div class="card-body p-0">
                             <div id="map" style="height: 400px; width: 100%;"></div>
                         </div>

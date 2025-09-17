@@ -4,9 +4,8 @@
 /**
  * 建築物を検索する（新しいロジック）
  */
-function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja') {
+function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
     $db = getDB();
-    $limit = 20;
     $offset = ($page - 1) * $limit;
     
     // テーブル名の定義
@@ -18,10 +17,6 @@ function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = 
     // キーワードを分割（全角・半角スペースで分割）
     $temp = str_replace('　', ' ', $query);
     $keywords = array_filter(explode(' ', trim($temp)));
-    
-    if (empty($keywords)) {
-        return ['buildings' => [], 'total' => 0, 'totalPages' => 0];
-    }
     
     // WHERE句の構築
     $whereClauses = [];
@@ -58,7 +53,7 @@ function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = 
     
     // メディアフィルター
     if ($hasPhotos) {
-        $whereClauses[] = "b.thumbnailUrl IS NOT NULL AND b.thumbnailUrl != ''";
+        $whereClauses[] = "b.has_photo IS NOT NULL AND b.has_photo != ''";
     }
     
     if ($hasVideos) {
@@ -105,7 +100,7 @@ function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = 
         LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
         $whereSql
         GROUP BY b.building_id
-        ORDER BY b.uid DESC
+        ORDER BY b.has_photo DESC, b.building_id DESC
         LIMIT {$limit} OFFSET {$offset}
     ";
     
@@ -138,7 +133,9 @@ function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = 
         return [
             'buildings' => $buildings,
             'total' => $total,
-            'totalPages' => ceil($total / $limit)
+            'totalPages' => ceil($total / $limit),
+            'currentPage' => $page,
+            'limit' => $limit
         ];
         
     } catch (PDOException $e) {
@@ -186,7 +183,7 @@ function transformBuildingDataNew($row, $lang = 'ja') {
         'slug' => $row['slug'] ?? $row['uid'] ?? '',
         'title' => $row['title'] ?? '',
         'titleEn' => $row['titleEn'] ?? $row['title'] ?? '',
-        'thumbnailUrl' => $row['thumbnailUrl'] ?? '',
+        'thumbnailUrl' => generateThumbnailUrl($row['uid'] ?? '', $row['has_photo'] ?? null),
         'youtubeUrl' => $row['youtubeUrl'] ?? '',
         'completionYears' => parseYear($row['completionYears'] ?? ''),
         'buildingTypes' => $buildingTypes,
@@ -221,6 +218,7 @@ function getBuildingBySlugNew($slug, $lang = 'ja') {
             b.title,
             b.titleEn,
             b.thumbnailUrl,
+            b.has_photo,
             b.youtubeUrl,
             b.completionYears,
             b.buildingTypes,

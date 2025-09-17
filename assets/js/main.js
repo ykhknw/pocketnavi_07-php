@@ -9,7 +9,7 @@ function initMap(center = [35.6762, 139.6503], buildings = []) {
         map.remove();
     }
     
-    map = L.map('map').setView(center, 12);
+    map = L.map('map').setView(center, 15);
     
     // タイルレイヤーの追加
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -23,8 +23,8 @@ function initMap(center = [35.6762, 139.6503], buildings = []) {
     // マーカーの追加
     addMarkers(buildings);
     
-    // 全マーカーを表示する範囲に調整
-    if (buildings.length > 0) {
+    // 全マーカーを表示する範囲に調整（複数マーカーの場合のみ）
+    if (buildings.length > 1) {
         const group = new L.featureGroup(markers);
         map.fitBounds(group.getBounds().pad(0.1));
     }

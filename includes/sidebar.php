@@ -2,12 +2,6 @@
 <div class="sticky-top" style="top: 20px;">
     <!-- Map -->
     <div class="card mb-4">
-        <div class="card-header">
-            <h6 class="mb-0">
-                <i class="fas fa-map me-2"></i>
-                <?php echo $lang === 'ja' ? '地図' : 'Map'; ?>
-            </h6>
-        </div>
         <div class="card-body p-0">
             <div id="map" style="height: 400px; width: 100%;"></div>
         </div>

@@ -2,7 +2,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="?lang=<?php echo $lang; ?>">
-            <img src="assets/images/landmark.ico" alt="PocketNavi" width="32" height="32" class="me-2">
+            <img src="assets/images/landmark.svg" alt="PocketNavi" width="32" height="32" class="me-2">
             <span class="fw-bold">PocketNavi</span>
         </a>
         

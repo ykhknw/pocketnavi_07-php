@@ -2,6 +2,19 @@
 // 共通関数
 
 /**
+ * サムネイルURLを生成
+ */
+function generateThumbnailUrl($uid, $hasPhoto) {
+    // has_photoがNULLまたは空の場合は空文字を返す
+    if (empty($hasPhoto)) {
+        return '';
+    }
+    
+    // 新しいURL形式: https://kenchikuka.com/pictures/{uid}/{has_photo}
+    return 'https://kenchikuka.com/pictures/' . urlencode($uid) . '/' . urlencode($hasPhoto);
+}
+
+/**
  * 建築物を検索する
  */
 function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja') {
@@ -42,7 +55,7 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
     
     // メディアフィルター
     if ($hasPhotos) {
-        $whereConditions[] = "b.thumbnailUrl IS NOT NULL AND b.thumbnailUrl != ''";
+        $whereConditions[] = "b.has_photo IS NOT NULL AND b.has_photo != ''";
     }
     
     if ($hasVideos) {
@@ -63,6 +76,7 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
             b.title,
             b.titleEn,
             b.thumbnailUrl,
+            b.has_photo,
             b.youtubeUrl,
             b.completionYears,
             b.buildingTypes,
@@ -161,6 +175,7 @@ function getRecentBuildings($limit = 20, $lang = 'ja') {
             b.title,
             b.titleEn,
             b.thumbnailUrl,
+            b.has_photo,
             b.youtubeUrl,
             b.completionYears,
             b.buildingTypes,
@@ -254,7 +269,7 @@ function transformBuildingData($row, $lang = 'ja') {
         'slug' => $row['slug'] ?: $row['uid'],
         'title' => $row['title'],
         'titleEn' => $row['titleEn'] ?: $row['title'],
-        'thumbnailUrl' => $row['thumbnailUrl'] ?: '',
+        'thumbnailUrl' => generateThumbnailUrl($row['uid'] ?? '', $row['has_photo'] ?? null),
         'youtubeUrl' => $row['youtubeUrl'] ?: '',
         'completionYears' => parseYear($row['completionYears']),
         'buildingTypes' => $buildingTypes,
@@ -289,6 +304,7 @@ function getBuildingBySlug($slug, $lang = 'ja') {
             b.title,
             b.titleEn,
             b.thumbnailUrl,
+            b.has_photo,
             b.youtubeUrl,
             b.completionYears,
             b.buildingTypes,
@@ -423,7 +439,7 @@ function t($key, $lang = 'ja') {
         'ja' => [
             'searchPlaceholder' => '建築物名、建築家、場所で検索...',
             'search' => '検索',
-            'currentLocation' => '現在地',
+            'currentLocation' => '現在地を検索',
             'detailedSearch' => '詳細検索',
             'withPhotos' => '写真あり',
             'withVideos' => '動画あり',
@@ -444,12 +460,12 @@ function t($key, $lang = 'ja') {
             'popularSearches' => '人気の検索',
             'noBuildingsFound' => '建築物が見つかりませんでした。',
             'loadingMap' => '地図を読み込み中...',
-            'currentLocation' => '現在地'
+            'currentLocation' => '現在地を検索'
         ],
         'en' => [
             'searchPlaceholder' => 'Search by building name, architect, location...',
             'search' => 'Search',
-            'currentLocation' => 'Current Location',
+            'currentLocation' => 'Search Current Location',
             'detailedSearch' => 'Detailed Search',
             'withPhotos' => 'With Photos',
             'withVideos' => 'With Videos',
@@ -470,7 +486,7 @@ function t($key, $lang = 'ja') {
             'popularSearches' => 'Popular Searches',
             'noBuildingsFound' => 'No buildings found.',
             'loadingMap' => 'Loading map...',
-            'currentLocation' => 'Current Location'
+            'currentLocation' => 'Search Current Location'
         ]
     ];
     
