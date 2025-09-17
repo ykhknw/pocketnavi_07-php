@@ -15,6 +15,8 @@ $hasVideos = isset($_GET['videos']) ? (bool)$_GET['videos'] : false;
 $userLat = isset($_GET['lat']) ? floatval($_GET['lat']) : null;
 $userLng = isset($_GET['lng']) ? floatval($_GET['lng']) : null;
 $radiusKm = isset($_GET['radius']) ? max(1, intval($_GET['radius'])) : 5;
+$buildingSlug = isset($_GET['building_slug']) ? trim($_GET['building_slug']) : '';
+$prefectures = isset($_GET['prefectures']) ? trim($_GET['prefectures']) : '';
 
 // 検索結果の取得
 $buildings = [];
@@ -23,7 +25,21 @@ $totalPages = 0;
 $currentPage = $page;
 $limit = 10;
 
-if ($userLat !== null && $userLng !== null) {
+if ($buildingSlug) {
+    // 建物slug検索
+    $searchResult = searchBuildingsBySlug($buildingSlug, $lang, $limit);
+    $buildings = $searchResult['buildings'];
+    $totalBuildings = $searchResult['total'];
+    $totalPages = $searchResult['totalPages'];
+    $currentPage = $searchResult['currentPage'];
+} elseif ($prefectures) {
+    // 都道府県検索
+    $searchResult = searchBuildingsByPrefecture($prefectures, $page, $lang, $limit);
+    $buildings = $searchResult['buildings'];
+    $totalBuildings = $searchResult['total'];
+    $totalPages = $searchResult['totalPages'];
+    $currentPage = $searchResult['currentPage'];
+} elseif ($userLat !== null && $userLng !== null) {
     // 現在地検索
     $searchResult = searchBuildingsByLocation($userLat, $userLng, $radiusKm, $page, $hasPhotos, $hasVideos, $lang, $limit);
     $buildings = $searchResult['buildings'];

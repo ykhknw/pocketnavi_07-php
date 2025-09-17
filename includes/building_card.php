@@ -41,7 +41,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                         <?php echo $index + 1; ?>
                     </div>
                     <h5 class="card-title mb-0 flex-grow-1">
-                        <a href="building.php?slug=<?php echo urlencode($building['slug']); ?>&lang=<?php echo $lang; ?>" 
+                        <a href="index.php?building_slug=<?php echo urlencode($building['slug']); ?>&lang=<?php echo $lang; ?>" 
                            class="text-decoration-none text-dark">
                             <?php echo htmlspecialchars($lang === 'ja' ? $building['title'] : $building['titleEn']); ?>
                         </a>
@@ -113,10 +113,11 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <?php if (!empty($building['prefectures'])): ?>
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
-                            <span class="prefecture-badge">
+                            <a href="index.php?prefectures=<?php echo urlencode($building['prefecturesEn']); ?>&lang=<?php echo $lang; ?>" 
+                               class="prefecture-badge text-decoration-none">
                                 <i class="fas fa-map-marker-alt me-1"></i>
                                 <?php echo htmlspecialchars($lang === 'ja' ? $building['prefectures'] : $building['prefecturesEn']); ?>
-                            </span>
+                            </a>
                         </div>
                     </div>
                 <?php endif; ?>

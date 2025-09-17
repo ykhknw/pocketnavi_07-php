@@ -484,5 +484,202 @@ function getBuildingBySlugNew($slug, $lang = 'ja') {
     }
 }
 
+/**
+ * 建物slug検索用の関数（index.php用）
+ */
+function searchBuildingsBySlug($buildingSlug, $lang = 'ja', $limit = 10) {
+    $db = getDB();
+    
+    // テーブル名の定義
+    $buildings_table = 'buildings_table_2';
+    $building_architects_table = 'building_architects';
+    $architect_compositions_table = 'architect_compositions_2';
+    $individual_architects_table = 'individual_architects_3';
+    
+    // WHERE句の構築
+    $whereClauses = [];
+    $params = [];
+    
+    // slug検索条件
+    $whereClauses[] = "b.slug = ?";
+    $params[] = $buildingSlug;
+    
+    // WHERE句を構築
+    $whereSql = " WHERE " . implode(" AND ", $whereClauses);
+    
+    // --- 件数取得 ---
+    $countSql = "
+        SELECT COUNT(DISTINCT b.building_id)
+        FROM $buildings_table b
+        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+        $whereSql
+    ";
+    
+    $countStmt = $db->prepare($countSql);
+    $countStmt->execute($params);
+    $total = $countStmt->fetchColumn();
+    $totalPages = ceil($total / $limit);
+    
+    // --- データ取得クエリ ---
+    $sql = "
+        SELECT b.*,
+               GROUP_CONCAT(
+                   DISTINCT ia.name_ja 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ' / '
+               ) AS architectJa,
+               GROUP_CONCAT(
+                   DISTINCT ia.name_en 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ' / '
+               ) AS architectEn,
+               GROUP_CONCAT(
+                   DISTINCT ia.slug 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ','
+               ) AS architectSlugs,
+               GROUP_CONCAT(
+                   DISTINCT ba.architect_id 
+                   ORDER BY ba.architect_order 
+                   SEPARATOR ','
+               ) AS architectIds
+        FROM $buildings_table b
+        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+        $whereSql
+        GROUP BY b.building_id
+        ORDER BY b.building_id DESC
+        LIMIT {$limit}
+    ";
+    
+    try {
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        
+        $buildings = [];
+        while ($row = $stmt->fetch()) {
+            $buildings[] = transformBuildingDataNew($row, $lang);
+        }
+        
+        return [
+            'buildings' => $buildings,
+            'total' => $total,
+            'totalPages' => $totalPages,
+            'currentPage' => 1
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("searchBuildingsBySlug error: " . $e->getMessage());
+        return [
+            'buildings' => [],
+            'total' => 0,
+            'totalPages' => 0,
+            'currentPage' => 1
+        ];
+    }
+}
+
+/**
+ * 都道府県検索用の関数（index.php用）
+ */
+function searchBuildingsByPrefecture($prefecture, $page = 1, $lang = 'ja', $limit = 10) {
+    $db = getDB();
+    $offset = ($page - 1) * $limit;
+    
+    // テーブル名の定義
+    $buildings_table = 'buildings_table_2';
+    $building_architects_table = 'building_architects';
+    $architect_compositions_table = 'architect_compositions_2';
+    $individual_architects_table = 'individual_architects_3';
+    
+    // WHERE句の構築
+    $whereClauses = [];
+    $params = [];
+    
+    // 都道府県検索条件（prefecturesEnカラムで検索）
+    $whereClauses[] = "b.prefecturesEn = ?";
+    $params[] = $prefecture;
+    
+    // WHERE句を構築
+    $whereSql = " WHERE " . implode(" AND ", $whereClauses);
+    
+    // --- 件数取得 ---
+    $countSql = "
+        SELECT COUNT(DISTINCT b.building_id)
+        FROM $buildings_table b
+        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+        $whereSql
+    ";
+    
+    $countStmt = $db->prepare($countSql);
+    $countStmt->execute($params);
+    $total = $countStmt->fetchColumn();
+    $totalPages = ceil($total / $limit);
+    
+    // --- データ取得クエリ ---
+    $sql = "
+        SELECT b.*,
+               GROUP_CONCAT(
+                   DISTINCT ia.name_ja 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ' / '
+               ) AS architectJa,
+               GROUP_CONCAT(
+                   DISTINCT ia.name_en 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ' / '
+               ) AS architectEn,
+               GROUP_CONCAT(
+                   DISTINCT ia.slug 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ','
+               ) AS architectSlugs,
+               GROUP_CONCAT(
+                   DISTINCT ba.architect_id 
+                   ORDER BY ba.architect_order 
+                   SEPARATOR ','
+               ) AS architectIds
+        FROM $buildings_table b
+        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+        $whereSql
+        GROUP BY b.building_id
+        ORDER BY b.building_id DESC
+        LIMIT {$limit} OFFSET {$offset}
+    ";
+    
+    try {
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        
+        $buildings = [];
+        while ($row = $stmt->fetch()) {
+            $buildings[] = transformBuildingDataNew($row, $lang);
+        }
+        
+        return [
+            'buildings' => $buildings,
+            'total' => $total,
+            'totalPages' => $totalPages,
+            'currentPage' => $page
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("searchBuildingsByPrefecture error: " . $e->getMessage());
+        return [
+            'buildings' => [],
+            'total' => 0,
+            'totalPages' => 0,
+            'currentPage' => $page
+        ];
+    }
+}
+
 // parseYear関数は既にfunctions.phpで定義されているため、ここでは削除
 ?>
