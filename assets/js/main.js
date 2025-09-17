@@ -107,14 +107,14 @@ function getCurrentLocation() {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
                 
-                // 現在地マーカーを追加
-                addCurrentLocationMarker(lat, lng);
+                // 現在地検索のURLにリダイレクト
+                const currentUrl = new URL(window.location);
+                currentUrl.searchParams.set('lat', lat);
+                currentUrl.searchParams.set('lng', lng);
+                currentUrl.searchParams.set('radius', '5'); // デフォルト5km
+                currentUrl.searchParams.delete('q'); // キーワード検索をクリア
                 
-                // 現在地を中心に地図を移動
-                map.setView([lat, lng], 15);
-                
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                window.location.href = currentUrl.toString();
             },
             function(error) {
                 alert('位置情報の取得に失敗しました: ' + error.message);

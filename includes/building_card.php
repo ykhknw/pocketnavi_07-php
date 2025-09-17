@@ -55,6 +55,10 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <small class="text-muted">
                     <i class="fas fa-map-marker-alt me-1"></i>
                     <?php echo htmlspecialchars($lang === 'ja' ? $building['location'] : $building['locationEn']); ?>
+                    <?php if (isset($building['distance'])): ?>
+                        <br><i class="fas fa-route me-1"></i>
+                        <?php echo $building['distance']; ?>km
+                    <?php endif; ?>
                 </small>
             </p>
         <?php endif; ?>

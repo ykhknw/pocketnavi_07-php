@@ -2,6 +2,114 @@
 // 共通関数（新しい検索ロジック）
 
 /**
+ * 現在地検索用の関数
+ */
+function searchBuildingsByLocation($userLat, $userLng, $radiusKm = 5, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
+    $db = getDB();
+    $offset = ($page - 1) * $limit;
+    
+    // テーブル名の定義
+    $buildings_table = 'buildings_table_2';
+    $building_architects_table = 'building_architects';
+    $architect_compositions_table = 'architect_compositions_2';
+    $individual_architects_table = 'individual_architects_3';
+    
+    // WHERE句の構築
+    $whereClauses = [];
+    $params = [];
+    
+    // 位置情報による検索（Haversine公式を使用）
+    $whereClauses[] = "(6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(b.lat)) * COS(RADIANS(b.lng) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(b.lat)))) < ?";
+    $params[] = $userLat;
+    $params[] = $userLng;
+    $params[] = $userLat;
+    $params[] = $radiusKm;
+    
+    // 座標が有効なデータのみ
+    $whereClauses[] = "b.lat IS NOT NULL AND b.lng IS NOT NULL AND b.lat != 0 AND b.lng != 0";
+    
+    // 写真フィルター
+    if ($hasPhotos) {
+        $whereClauses[] = "b.has_photo IS NOT NULL AND b.has_photo != ''";
+    }
+    
+    // 動画フィルター
+    if ($hasVideos) {
+        $whereClauses[] = "b.youtubeUrl IS NOT NULL AND b.youtubeUrl != ''";
+    }
+    
+    // WHERE句を構築
+    $whereSql = " WHERE " . implode(" AND ", $whereClauses);
+    
+    // --- 件数取得 ---
+    $countSql = "
+        SELECT COUNT(DISTINCT b.building_id)
+        FROM $buildings_table b
+        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+        $whereSql
+    ";
+    
+    $countStmt = $db->prepare($countSql);
+    $countStmt->execute($params);
+    $total = $countStmt->fetchColumn();
+    $totalPages = ceil($total / $limit);
+    
+    // --- データ取得クエリ（距離順でソート） ---
+    $sql = "
+        SELECT b.*,
+               GROUP_CONCAT(
+                   DISTINCT ia.name_ja 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ' / '
+               ) AS architectJa,
+               GROUP_CONCAT(
+                   DISTINCT ba.architect_id 
+                   ORDER BY ba.architect_order 
+                   SEPARATOR ','
+               ) AS architectIds,
+               (6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(b.lat)) * COS(RADIANS(b.lng) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(b.lat)))) AS distance
+        FROM $buildings_table b
+        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+        $whereSql
+        GROUP BY b.building_id
+        ORDER BY distance ASC
+        LIMIT {$limit} OFFSET {$offset}
+    ";
+    
+    // 距離計算用のパラメータを追加
+    $distanceParams = [$userLat, $userLng, $userLat];
+    $allParams = array_merge($distanceParams, $params);
+    
+    try {
+        $stmt = $db->prepare($sql);
+        $stmt->execute($allParams);
+        
+        $buildings = [];
+        while ($row = $stmt->fetch()) {
+            $building = transformBuildingDataNew($row, $lang);
+            $building['distance'] = round($row['distance'], 2); // 距離を追加
+            $buildings[] = $building;
+        }
+        
+        return [
+            'buildings' => $buildings,
+            'total' => $total,
+            'totalPages' => $totalPages,
+            'currentPage' => $page,
+            'limit' => $limit
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("Location search error: " . $e->getMessage());
+        return ['buildings' => [], 'total' => 0, 'totalPages' => 0];
+    }
+}
+
+/**
  * 建築物を検索する（新しいロジック）
  */
 function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
