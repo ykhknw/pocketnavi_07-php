@@ -110,6 +110,101 @@ function searchBuildingsByLocation($userLat, $userLng, $radiusKm = 5, $page = 1,
 }
 
 /**
+ * 建築家の建築物を取得
+ */
+function getBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 20) {
+    $db = getDB();
+    
+    // テーブル名の定義
+    $buildings_table = 'buildings_table_2';
+    $building_architects_table = 'building_architects';
+    $architect_compositions_table = 'architect_compositions_2';
+    $individual_architects_table = 'individual_architects_3';
+    
+    // デバッグ情報を追加
+    error_log("getBuildingsByArchitectSlug: Looking for architect slug: " . $architectSlug);
+    
+    $sql = "
+        SELECT 
+            b.*,
+            GROUP_CONCAT(
+                DISTINCT ia.name_ja 
+                ORDER BY ba.architect_order, ac.order_index 
+                SEPARATOR ' / '
+            ) AS architectJa,
+            GROUP_CONCAT(
+                DISTINCT ia.name_en 
+                ORDER BY ba.architect_order, ac.order_index 
+                SEPARATOR ' / '
+            ) AS architectEn,
+            GROUP_CONCAT(
+                DISTINCT ba.architect_id 
+                ORDER BY ba.architect_order 
+                SEPARATOR ','
+            ) AS architectIds,
+            GROUP_CONCAT(
+                DISTINCT ia.slug 
+                ORDER BY ba.architect_order, ac.order_index 
+                SEPARATOR ','
+            ) AS architectSlugs
+        FROM $individual_architects_table ia
+        INNER JOIN $architect_compositions_table ac ON ia.individual_architect_id = ac.individual_architect_id
+        INNER JOIN $building_architects_table ba ON ac.architect_id = ba.architect_id
+        INNER JOIN $buildings_table b ON ba.building_id = b.building_id
+        WHERE ia.slug = :architect_slug
+        GROUP BY b.building_id
+        ORDER BY b.has_photo DESC, b.building_id DESC
+        LIMIT {$limit}
+    ";
+    
+    try {
+        error_log("getBuildingsByArchitectSlug SQL: " . $sql);
+        
+        $stmt = $db->prepare($sql);
+        $stmt->bindValue(':architect_slug', $architectSlug);
+        $stmt->execute();
+        
+        $buildings = [];
+        $rowCount = 0;
+        while ($row = $stmt->fetch()) {
+            error_log("getBuildingsByArchitectSlug: Raw row data: " . print_r($row, true));
+            $transformedBuilding = transformBuildingDataNew($row, $lang);
+            error_log("getBuildingsByArchitectSlug: Transformed building: " . print_r($transformedBuilding, true));
+            $buildings[] = $transformedBuilding;
+            $rowCount++;
+        }
+        
+        error_log("getBuildingsByArchitectSlug: Found " . $rowCount . " buildings for architect slug: " . $architectSlug);
+        
+        // デバッグ用：建築家の建築物の関連テーブルを直接確認
+        $debugStmt = $db->prepare("
+            SELECT 
+                ia.individual_architect_id,
+                ia.name_ja,
+                ia.slug,
+                ac.architect_id,
+                ba.building_id,
+                b.title
+            FROM individual_architects_3 ia
+            LEFT JOIN architect_compositions_2 ac ON ia.individual_architect_id = ac.individual_architect_id
+            LEFT JOIN building_architects ba ON ac.architect_id = ba.architect_id
+            LEFT JOIN buildings_table_2 b ON ba.building_id = b.building_id
+            WHERE ia.slug = ?
+            LIMIT 10
+        ");
+        $debugStmt->execute([$architectSlug]);
+        $debugResults = $debugStmt->fetchAll();
+        error_log("getBuildingsByArchitectSlug: Debug query results: " . print_r($debugResults, true));
+        
+        return $buildings;
+        
+    } catch (PDOException $e) {
+        error_log("Architect buildings search error: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
  * 建築物を検索する（新しいロジック）
  */
 function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
@@ -201,7 +296,12 @@ function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = 
                    DISTINCT ba.architect_id 
                    ORDER BY ba.architect_order 
                    SEPARATOR ','
-               ) AS architectIds
+               ) AS architectIds,
+               GROUP_CONCAT(
+                   DISTINCT ia.slug 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ','
+               ) AS architectSlugs
         FROM $buildings_table b
         LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
         LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
@@ -262,13 +362,14 @@ function transformBuildingDataNew($row, $lang = 'ja') {
         $namesJa = explode(' / ', $row['architectJa']);
         $namesEn = !empty($row['architectEn']) ? explode(' / ', $row['architectEn']) : [];
         $architectIds = !empty($row['architectIds']) ? explode(',', $row['architectIds']) : [];
+        $architectSlugs = !empty($row['architectSlugs']) ? explode(',', $row['architectSlugs']) : [];
         
         for ($i = 0; $i < count($namesJa); $i++) {
             $architects[] = [
                 'architect_id' => isset($architectIds[$i]) ? intval($architectIds[$i]) : 0,
                 'architectJa' => trim($namesJa[$i]),
                 'architectEn' => isset($namesEn[$i]) ? trim($namesEn[$i]) : trim($namesJa[$i]),
-                'slug' => '' // 必要に応じて設定
+                'slug' => isset($architectSlugs[$i]) ? trim($architectSlugs[$i]) : ''
             ];
         }
     }
@@ -344,7 +445,8 @@ function getBuildingBySlugNew($slug, $lang = 'ja') {
             b.updated_at,
             GROUP_CONCAT(DISTINCT ia.name_ja ORDER BY ac.order_index SEPARATOR ' / ') as architectJa,
             GROUP_CONCAT(DISTINCT ia.name_en ORDER BY ac.order_index SEPARATOR ' / ') as architectEn,
-            GROUP_CONCAT(DISTINCT ba.architect_id ORDER BY ba.architect_order SEPARATOR ',') as architectIds
+            GROUP_CONCAT(DISTINCT ba.architect_id ORDER BY ba.architect_order SEPARATOR ',') as architectIds,
+            GROUP_CONCAT(DISTINCT ia.slug ORDER BY ac.order_index SEPARATOR ',') as architectSlugs
         FROM buildings_table_2 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
         LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id

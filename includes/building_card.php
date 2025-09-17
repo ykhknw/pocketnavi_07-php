@@ -29,25 +29,30 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     <?php endif; ?>
     
     <div class="card-body d-flex flex-column">
-        <h5 class="card-title">
-            <a href="building.php?slug=<?php echo urlencode($building['slug']); ?>&lang=<?php echo $lang; ?>" 
-               class="text-decoration-none text-dark">
-                <?php echo htmlspecialchars($lang === 'ja' ? $building['title'] : $building['titleEn']); ?>
-            </a>
-        </h5>
+        <div class="d-flex align-items-center mb-2">
+            <div class="search-number-badge me-2">
+                <?php echo $index + 1; ?>
+            </div>
+            <h5 class="card-title mb-0 flex-grow-1">
+                <a href="building.php?slug=<?php echo urlencode($building['slug']); ?>&lang=<?php echo $lang; ?>" 
+                   class="text-decoration-none text-dark">
+                    <?php echo htmlspecialchars($lang === 'ja' ? $building['title'] : $building['titleEn']); ?>
+                </a>
+            </h5>
+        </div>
         
         <?php if (!empty($building['architects'])): ?>
-            <p class="card-text">
-                <small class="text-muted">
-                    <i class="fas fa-user me-1"></i>
-                    <?php 
-                    $architectNames = array_map(function($architect) use ($lang) {
-                        return $lang === 'ja' ? $architect['architectJa'] : $architect['architectEn'];
-                    }, $building['architects']);
-                    echo htmlspecialchars(implode('、', $architectNames));
-                    ?>
-                </small>
-            </p>
+            <div class="card-text mb-2">
+                <div class="d-flex flex-wrap gap-1">
+                    <?php foreach ($building['architects'] as $architect): ?>
+                        <a href="building.php?architects=<?php echo urlencode($architect['slug']); ?>&lang=<?php echo $lang; ?>" 
+                           class="architect-badge text-decoration-none">
+                            <i class="fas fa-user me-1"></i>
+                            <?php echo htmlspecialchars($lang === 'ja' ? $architect['architectJa'] : $architect['architectEn']); ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         <?php endif; ?>
         
         <?php if ($building['location']): ?>

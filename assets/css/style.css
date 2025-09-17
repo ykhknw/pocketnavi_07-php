@@ -1,5 +1,103 @@
 /* Custom CSS for PocketNavi */
 
+/* 検索結果番号バッジ */
+.search-number-badge {
+    background-color: #2563eb;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* 建築家バッジ */
+.architect-badge {
+    background-color: #f0f4ff;
+    color: #4263eb;
+    border: 1px solid #e6eeff;
+    border-radius: 16px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(66, 99, 235, 0.1);
+}
+
+.architect-badge:hover {
+    background-color: #e6eeff;
+    border-color: #d1d9ff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(66, 99, 235, 0.15);
+    color: #4263eb;
+    text-decoration: none;
+}
+
+.architect-badge i {
+    font-size: 10px;
+}
+
+/* 建物用途バッジ */
+.building-type-badge {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+    border-radius: 16px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(108, 117, 125, 0.1);
+}
+
+.building-type-badge:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.15);
+}
+
+.building-type-badge i {
+    font-size: 10px;
+}
+
+/* 都道府県バッジ */
+.prefecture-badge {
+    background-color: #f0f9f0;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+    border-radius: 16px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(22, 163, 74, 0.1);
+}
+
+.prefecture-badge:hover {
+    background-color: #dcfce7;
+    border-color: #86efac;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.15);
+}
+
+.prefecture-badge i {
+    font-size: 10px;
+}
+
 /* 基本スタイル */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
