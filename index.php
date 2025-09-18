@@ -17,6 +17,7 @@ $userLng = isset($_GET['lng']) ? floatval($_GET['lng']) : null;
 $radiusKm = isset($_GET['radius']) ? max(1, intval($_GET['radius'])) : 5;
 $buildingSlug = isset($_GET['building_slug']) ? trim($_GET['building_slug']) : '';
 $prefectures = isset($_GET['prefectures']) ? trim($_GET['prefectures']) : '';
+$architectsSlug = isset($_GET['architects_slug']) ? trim($_GET['architects_slug']) : '';
 
 // 検索結果の取得
 $buildings = [];
@@ -28,6 +29,13 @@ $limit = 10;
 if ($buildingSlug) {
     // 建物slug検索
     $searchResult = searchBuildingsBySlug($buildingSlug, $lang, $limit);
+    $buildings = $searchResult['buildings'];
+    $totalBuildings = $searchResult['total'];
+    $totalPages = $searchResult['totalPages'];
+    $currentPage = $searchResult['currentPage'];
+} elseif ($architectsSlug) {
+    // 建築家slug検索
+    $searchResult = searchBuildingsByArchitectSlug($architectsSlug, $lang, $limit, $page);
     $buildings = $searchResult['buildings'];
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
@@ -116,14 +124,21 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <?php endif; ?>
                 
                 <!-- Search Debug Information -->
-                <?php if ($query && isset($_GET['debug'])): ?>
+                <?php if (($query || $architectsSlug) && isset($_GET['debug'])): ?>
                     <div class="alert alert-info">
                         <h6>検索デバッグ情報:</h6>
                         <ul>
-                            <li>検索クエリ: "<?php echo htmlspecialchars($query); ?>"</li>
+                            <?php if ($query): ?>
+                                <li>検索クエリ: "<?php echo htmlspecialchars($query); ?>"</li>
+                            <?php endif; ?>
+                            <?php if ($architectsSlug): ?>
+                                <li>建築家スラッグ: "<?php echo htmlspecialchars($architectsSlug); ?>"</li>
+                            <?php endif; ?>
                             <li>検索結果数: <?php echo count($buildings); ?></li>
                             <li>総件数: <?php echo $totalBuildings; ?></li>
-                            <li>ページ: <?php echo $page; ?></li>
+                            <li>現在のページ: <?php echo $page; ?></li>
+                            <li>総ページ数: <?php echo $totalPages; ?></li>
+                            <li>リミット: <?php echo $limit; ?></li>
                         </ul>
                         <p><strong>注意:</strong> エラーログを確認してください（通常は C:\xampp\apache\logs\error.log）</p>
                     </div>
@@ -143,6 +158,10 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                     <?php else: ?>
                         <?php foreach ($buildings as $index => $building): ?>
                             <div class="col-12 mb-4">
+                                <?php 
+                                // 通し番号を計算
+                                $globalIndex = ($currentPage - 1) * $limit + $index + 1;
+                                ?>
                                 <?php include 'includes/building_card.php'; ?>
                             </div>
                         <?php endforeach; ?>
@@ -171,6 +190,15 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Custom JS -->
     <script src="assets/js/main.js"></script>
+    
+    <script>
+        // ページ情報をJavaScriptに渡す
+        window.pageInfo = {
+            currentPage: <?php echo $currentPage; ?>,
+            limit: <?php echo $limit; ?>
+        };
+        console.log('Page info set:', window.pageInfo); // デバッグ用
+    </script>
 </body>
 </html>
 

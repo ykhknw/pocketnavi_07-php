@@ -251,7 +251,7 @@ $popularSearches = getPopularSearches($lang);
                                         </h6>
                                         <div class="d-flex flex-wrap gap-1">
                                             <?php foreach ($building['architects'] as $architect): ?>
-                                                <a href="building.php?architects=<?php echo urlencode($architect['slug']); ?>&lang=<?php echo $lang; ?>" 
+                                                <a href="index.php?architects_slug=<?php echo urlencode($architect['slug']); ?>&lang=<?php echo $lang; ?>" 
                                                    class="architect-badge text-decoration-none">
                                                     <i class="fas fa-user me-1"></i>
                                                     <?php echo htmlspecialchars($lang === 'ja' ? $architect['architectJa'] : $architect['architectEn']); ?>

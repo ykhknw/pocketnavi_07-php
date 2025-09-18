@@ -20,6 +20,9 @@ function initMap(center = [35.6762, 139.6503], buildings = []) {
     // ズームコントロールの位置調整
     map.zoomControl.setPosition('bottomleft');
     
+    // ページ情報を再確認
+    console.log('initMap - Page info:', window.pageInfo);
+    
     // マーカーの追加
     addMarkers(buildings);
     
@@ -35,6 +38,10 @@ function addMarkers(buildings) {
     // 既存のマーカーを削除
     markers.forEach(marker => map.removeLayer(marker));
     markers = [];
+    
+    // ページ情報を取得（通し番号計算用）
+    const pageInfo = window.pageInfo || { currentPage: 1, limit: 10 };
+    console.log('Page info for markers:', pageInfo); // デバッグ用
     
     buildings.forEach((building, index) => {
         if (building.lat && building.lng && building.lat !== 0 && building.lng !== 0) {
@@ -52,9 +59,11 @@ function addMarkers(buildings) {
                     shadowSize: [41, 41]
                 });
             } else {
-                // 一覧ページ用の数字付きマーカー
+                // 一覧ページ用の数字付きマーカー（通し番号）
+                const globalIndex = (pageInfo.currentPage - 1) * pageInfo.limit + index + 1;
+                console.log(`Marker ${index}: local=${index + 1}, global=${globalIndex}, page=${pageInfo.currentPage}, limit=${pageInfo.limit}`); // デバッグ用
                 icon = L.divIcon({
-                    html: `<div style="background-color: #2563eb; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${index + 1}</div>`,
+                    html: `<div style="background-color: #2563eb; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${globalIndex}</div>`,
                     className: 'custom-marker',
                     iconSize: [32, 32],
                     iconAnchor: [16, 16]
@@ -83,7 +92,7 @@ function createPopupContent(building) {
     return `
         <div style="padding: 8px; min-width: 200px;">
             <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">
-                <a href="building.php?slug=${building.slug}&lang=${lang}" 
+                <a href="index.php?building_slug=${building.slug}&lang=${lang}" 
                    style="color: #1e40af; text-decoration: none;">
                     ${title}
                 </a>
@@ -172,6 +181,9 @@ function openVideo(url) {
 
 // ページ読み込み時の初期化
 document.addEventListener('DOMContentLoaded', function() {
+    // ページ情報を確認
+    console.log('DOMContentLoaded - Page info:', window.pageInfo);
+    
     // 建築物データの取得
     const buildingCards = document.querySelectorAll('.building-card');
     console.log('Found building cards:', buildingCards.length); // デバッグ用
@@ -205,17 +217,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('Buildings for map:', buildings); // デバッグ用
     
-    // 地図の初期化
+    // 地図の初期化（ページ情報の設定を待つ）
     if (document.getElementById('map')) {
-        if (buildings.length > 0) {
-            // 建築物がある場合は、最初の建築物を中心に設定
-            const centerLat = buildings[0].lat;
-            const centerLng = buildings[0].lng;
-            initMap([centerLat, centerLng], buildings);
-        } else {
-            // 建築物がない場合は東京を中心に設定
-            initMap([35.6762, 139.6503], []);
-        }
+        // ページ情報が設定されるまで少し待つ
+        setTimeout(() => {
+            if (buildings.length > 0) {
+                // 建築物がある場合は、最初の建築物を中心に設定
+                const centerLat = buildings[0].lat;
+                const centerLng = buildings[0].lng;
+                initMap([centerLat, centerLng], buildings);
+            } else {
+                // 建築物がない場合は東京を中心に設定
+                initMap([35.6762, 139.6503], []);
+            }
+        }, 100);
     }
     
     // 検索フォームの送信

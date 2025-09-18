@@ -28,6 +28,9 @@ function searchBuildingsByLocation($userLat, $userLng, $radiusKm = 5, $page = 1,
     // 座標が有効なデータのみ
     $whereClauses[] = "b.lat IS NOT NULL AND b.lng IS NOT NULL AND b.lat != 0 AND b.lng != 0";
     
+    // locationカラムが空でないもののみ
+    $whereClauses[] = "b.location IS NOT NULL AND b.location != ''";
+    
     // 写真フィルター
     if ($hasPhotos) {
         $whereClauses[] = "b.has_photo IS NOT NULL AND b.has_photo != ''";
@@ -110,10 +113,11 @@ function searchBuildingsByLocation($userLat, $userLng, $radiusKm = 5, $page = 1,
 }
 
 /**
- * 建築家の建築物を取得
+ * 建築家の建築物を取得（ページネーション対応）
  */
-function getBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 20) {
+function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 10, $page = 1) {
     $db = getDB();
+    $offset = ($page - 1) * $limit;
     
     // テーブル名の定義
     $buildings_table = 'buildings_table_2';
@@ -122,8 +126,20 @@ function getBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 20) 
     $individual_architects_table = 'individual_architects_3';
     
     // デバッグ情報を追加
-    error_log("getBuildingsByArchitectSlug: Looking for architect slug: " . $architectSlug);
+    error_log("searchBuildingsByArchitectSlug: Looking for architect slug: " . $architectSlug);
     
+    // 件数取得クエリ
+    $countSql = "
+        SELECT COUNT(DISTINCT b.building_id)
+        FROM $individual_architects_table ia
+        INNER JOIN $architect_compositions_table ac ON ia.individual_architect_id = ac.individual_architect_id
+        INNER JOIN $building_architects_table ba ON ac.architect_id = ba.architect_id
+        INNER JOIN $buildings_table b ON ba.building_id = b.building_id
+        WHERE ia.slug = :architect_slug
+        AND b.location IS NOT NULL AND b.location != ''
+    ";
+    
+    // データ取得クエリ
     $sql = "
         SELECT 
             b.*,
@@ -152,14 +168,23 @@ function getBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 20) 
         INNER JOIN $building_architects_table ba ON ac.architect_id = ba.architect_id
         INNER JOIN $buildings_table b ON ba.building_id = b.building_id
         WHERE ia.slug = :architect_slug
+        AND b.location IS NOT NULL AND b.location != ''
         GROUP BY b.building_id
         ORDER BY b.has_photo DESC, b.building_id DESC
-        LIMIT {$limit}
+        LIMIT {$limit} OFFSET {$offset}
     ";
     
     try {
-        error_log("getBuildingsByArchitectSlug SQL: " . $sql);
+        error_log("searchBuildingsByArchitectSlug SQL: " . $sql);
         
+        // 総件数取得
+        $countStmt = $db->prepare($countSql);
+        $countStmt->bindValue(':architect_slug', $architectSlug);
+        $countStmt->execute();
+        $total = $countStmt->fetchColumn();
+        $totalPages = ceil($total / $limit);
+        
+        // データ取得
         $stmt = $db->prepare($sql);
         $stmt->bindValue(':architect_slug', $architectSlug);
         $stmt->execute();
@@ -167,40 +192,32 @@ function getBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 20) 
         $buildings = [];
         $rowCount = 0;
         while ($row = $stmt->fetch()) {
-            error_log("getBuildingsByArchitectSlug: Raw row data: " . print_r($row, true));
+            error_log("searchBuildingsByArchitectSlug: Raw row data: " . print_r($row, true));
             $transformedBuilding = transformBuildingDataNew($row, $lang);
-            error_log("getBuildingsByArchitectSlug: Transformed building: " . print_r($transformedBuilding, true));
+            error_log("searchBuildingsByArchitectSlug: Transformed building: " . print_r($transformedBuilding, true));
             $buildings[] = $transformedBuilding;
             $rowCount++;
         }
         
-        error_log("getBuildingsByArchitectSlug: Found " . $rowCount . " buildings for architect slug: " . $architectSlug);
+        error_log("searchBuildingsByArchitectSlug: Found " . $rowCount . " buildings for architect slug: " . $architectSlug);
         
-        // デバッグ用：建築家の建築物の関連テーブルを直接確認
-        $debugStmt = $db->prepare("
-            SELECT 
-                ia.individual_architect_id,
-                ia.name_ja,
-                ia.slug,
-                ac.architect_id,
-                ba.building_id,
-                b.title
-            FROM individual_architects_3 ia
-            LEFT JOIN architect_compositions_2 ac ON ia.individual_architect_id = ac.individual_architect_id
-            LEFT JOIN building_architects ba ON ac.architect_id = ba.architect_id
-            LEFT JOIN buildings_table_2 b ON ba.building_id = b.building_id
-            WHERE ia.slug = ?
-            LIMIT 10
-        ");
-        $debugStmt->execute([$architectSlug]);
-        $debugResults = $debugStmt->fetchAll();
-        error_log("getBuildingsByArchitectSlug: Debug query results: " . print_r($debugResults, true));
-        
-        return $buildings;
+        return [
+            'buildings' => $buildings,
+            'total' => $total,
+            'totalPages' => $totalPages,
+            'currentPage' => $page,
+            'limit' => $limit
+        ];
         
     } catch (PDOException $e) {
         error_log("Architect buildings search error: " . $e->getMessage());
-        return [];
+        return [
+            'buildings' => [],
+            'total' => 0,
+            'totalPages' => 0,
+            'currentPage' => $page,
+            'limit' => $limit
+        ];
     }
 }
 
@@ -265,6 +282,9 @@ function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = 
     
     // 座標が存在するもののみ
     $whereClauses[] = "b.lat IS NOT NULL AND b.lng IS NOT NULL";
+    
+    // locationカラムが空でないもののみ
+    $whereClauses[] = "b.location IS NOT NULL AND b.location != ''";
     
     // WHERE句を構築
     $whereSql = " WHERE " . implode(" AND ", $whereClauses);
@@ -504,6 +524,9 @@ function searchBuildingsBySlug($buildingSlug, $lang = 'ja', $limit = 10) {
     $whereClauses[] = "b.slug = ?";
     $params[] = $buildingSlug;
     
+    // locationカラムが空でないもののみ
+    $whereClauses[] = "b.location IS NOT NULL AND b.location != ''";
+    
     // WHERE句を構築
     $whereSql = " WHERE " . implode(" AND ", $whereClauses);
     
@@ -602,6 +625,9 @@ function searchBuildingsByPrefecture($prefecture, $page = 1, $lang = 'ja', $limi
     // 都道府県検索条件（prefecturesEnカラムで検索）
     $whereClauses[] = "b.prefecturesEn = ?";
     $params[] = $prefecture;
+    
+    // locationカラムが空でないもののみ
+    $whereClauses[] = "b.location IS NOT NULL AND b.location != ''";
     
     // WHERE句を構築
     $whereSql = " WHERE " . implode(" AND ", $whereClauses);

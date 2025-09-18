@@ -38,7 +38,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
             <div class="card-body d-flex flex-column h-100">
                 <div class="d-flex align-items-center mb-2">
                     <div class="search-number-badge me-2">
-                        <?php echo $index + 1; ?>
+                        <?php echo isset($globalIndex) ? $globalIndex : ($index + 1); ?>
                     </div>
                     <h5 class="card-title mb-0 flex-grow-1">
                         <a href="index.php?building_slug=<?php echo urlencode($building['slug']); ?>&lang=<?php echo $lang; ?>" 
@@ -54,7 +54,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <div class="card-text mb-2">
                                 <div class="d-flex flex-wrap gap-1">
                                     <?php foreach ($building['architects'] as $architect): ?>
-                                        <a href="building.php?architects=<?php echo urlencode($architect['slug']); ?>&lang=<?php echo $lang; ?>" 
+                                        <a href="index.php?architects_slug=<?php echo urlencode($architect['slug']); ?>&lang=<?php echo $lang; ?>" 
                                            class="architect-badge text-decoration-none">
                                             <i class="fas fa-user me-1"></i>
                                             <?php echo htmlspecialchars($lang === 'ja' ? $architect['architectJa'] : $architect['architectEn']); ?>
