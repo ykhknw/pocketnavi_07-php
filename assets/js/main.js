@@ -91,23 +91,10 @@ function addMarkers(buildings) {
     });
 }
 
-// ポップアップコンテンツの作成
+// ポップアップコンテンツの作成（PHPで生成されたHTMLを使用）
 function createPopupContent(building) {
-    const lang = document.documentElement.lang || 'ja';
-    const title = lang === 'ja' ? building.title : building.titleEn;
-    const location = lang === 'ja' ? building.location : building.locationEn_from_datasheetChunkEn;
-    
-    return `
-        <div style="padding: 8px; min-width: 200px;">
-            <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">
-                <a href="index.php?building_slug=${building.slug}&lang=${lang}" 
-                   style="color: #1e40af; text-decoration: none;">
-                    ${title}
-                </a>
-            </h3>
-            ${location ? `<div style="margin-bottom: 8px; display: flex; align-items: center;"><i data-lucide="map-pin" style="width: 16px; height: 16px; margin-right: 6px;"></i> ${location}</div>` : ''}
-        </div>
-    `;
+    // PHPで生成されたHTMLを直接使用
+    return building.popupContent || '';
 }
 
 // 現在地の取得
@@ -251,8 +238,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: card.dataset.title,
                 titleEn: card.dataset['title-en'], // ハイフンを含む属性名は角括弧でアクセス
                 location: card.dataset.location,
-                locationEn_from_datasheetChunkEn: card.dataset['location-en'], // ハイフンを含む属性名は角括弧でアクセス
-                slug: card.dataset.slug
+                locationEn: card.dataset['location-en'], // ハイフンを含む属性名は角括弧でアクセス
+                slug: card.dataset.slug,
+                popupContent: card.dataset.popupContent // PHPで生成されたポップアップHTML
             };
         }
         return null;

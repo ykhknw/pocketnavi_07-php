@@ -3,6 +3,11 @@
 if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     echo "<!-- Building data debug: " . print_r($building, true) . " -->";
 }
+
+// デバッグ：titleEnの値を確認
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    echo "<!-- titleEn debug: " . ($building['titleEn'] ?? 'NULL') . " -->";
+}
 ?>
 <!-- Building Card - Horizontal Layout -->
 <div class="card mb-3 building-card" 
@@ -13,7 +18,8 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
      data-title-en="<?php echo htmlspecialchars($building['titleEn'] ?? ''); ?>"
      data-location="<?php echo htmlspecialchars($building['location'] ?? ''); ?>"
      data-location-en="<?php echo htmlspecialchars($building['locationEn'] ?? ''); ?>"
-     data-slug="<?php echo htmlspecialchars($building['slug'] ?? ''); ?>">
+     data-slug="<?php echo htmlspecialchars($building['slug'] ?? ''); ?>"
+     data-popup-content="<?php echo htmlspecialchars(generatePopupContent($building, $lang ?? 'ja')); ?>">
     <div class="row g-0">
         <!-- Image Column -->
         <div class="col-md-3">

@@ -322,7 +322,26 @@ function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = 
     
     // データ取得クエリ
     $sql = "
-        SELECT b.*,
+        SELECT b.building_id,
+               b.uid,
+               b.title,
+               b.titleEn,
+               b.slug,
+               b.lat,
+               b.lng,
+               b.location,
+               b.locationEn_from_datasheetChunkEn as locationEn,
+               b.completionYears,
+               b.buildingTypes,
+               b.buildingTypesEn,
+               b.prefectures,
+               b.prefecturesEn,
+               b.has_photo,
+               b.thumbnailUrl,
+               b.youtubeUrl,
+               b.created_at,
+               b.updated_at,
+               0 as likes,
                GROUP_CONCAT(
                    DISTINCT ia.name_ja 
                    ORDER BY ba.architect_order, ac.order_index 
@@ -373,6 +392,7 @@ function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = 
         $buildings = [];
         $rowCount = 0;
         while ($row = $stmt->fetch()) {
+        // デバッグコード削除
             $buildings[] = transformBuildingDataNew($row, $lang);
             $rowCount++;
         }
@@ -426,13 +446,37 @@ function transformBuildingDataNew($row, $lang = 'ja') {
             return !empty(trim($type));
         }) : [];
     
+    // 英語データの処理
+    $titleEn = $row['titleEn'] ?? $row['title'] ?? '';
+    $locationEn = '';
+    if (!empty($row['locationEn_from_datasheetChunkEn'])) {
+        $locationEn = $row['locationEn_from_datasheetChunkEn'];
+    } elseif (!empty($row['locationEn'])) {
+        $locationEn = $row['locationEn'];
+    } else {
+        $locationEn = $row['location'] ?? '';
+    }
+    
+    // デバッグ：最初の1件のみログ出力
+    static $debugCount = 0;
+    if ($debugCount === 0) {
+        error_log("=== transformBuildingDataNew Debug (Fixed) ===");
+        error_log("Raw row titleEn: " . ($row['titleEn'] ?? 'NULL'));
+        error_log("Raw row locationEn_from_datasheetChunkEn: " . ($row['locationEn_from_datasheetChunkEn'] ?? 'NULL'));
+        error_log("Raw row locationEn: " . ($row['locationEn'] ?? 'NULL'));
+        error_log("Raw row location: " . ($row['location'] ?? 'NULL'));
+        error_log("Processed titleEn: " . $titleEn);
+        error_log("Processed locationEn: " . $locationEn);
+        $debugCount++;
+    }
+    
     return [
         'building_id' => $row['building_id'] ?? 0, // building_card.phpで期待されるキー名に変更
         'id' => $row['building_id'] ?? 0, // 後方互換性のため残す
         'uid' => $row['uid'] ?? '',
         'slug' => $row['slug'] ?? $row['uid'] ?? '',
         'title' => $row['title'] ?? '',
-        'titleEn' => $row['titleEn'] ?? $row['title'] ?? '',
+        'titleEn' => $titleEn,
         'thumbnailUrl' => generateThumbnailUrl($row['uid'] ?? '', $row['has_photo'] ?? null),
         'youtubeUrl' => $row['youtubeUrl'] ?? '',
         'completionYears' => parseYear($row['completionYears'] ?? ''),
@@ -442,7 +486,7 @@ function transformBuildingDataNew($row, $lang = 'ja') {
         'prefecturesEn' => $row['prefecturesEn'] ?? null,
         'areas' => $row['areas'] ?? '',
         'location' => $row['location'] ?? '',
-        'locationEn' => ($row['locationEn'] ?? $row['locationEn_from_datasheetChunkEn'] ?? '') ?: ($row['location'] ?? ''),
+        'locationEn' => $locationEn,
         'architectDetails' => $row['architectDetails'] ?? '',
         'lat' => floatval($row['lat'] ?? 0),
         'lng' => floatval($row['lng'] ?? 0),
@@ -787,6 +831,7 @@ function searchBuildingsByCompletionYear($completionYear, $page = 1, $lang = 'ja
         // 建物データを取得（正しいテーブル結合）
         $sql = "
             SELECT b.building_id,
+                   b.uid,
                    b.title,
                    b.titleEn,
                    b.slug,
@@ -799,6 +844,7 @@ function searchBuildingsByCompletionYear($completionYear, $page = 1, $lang = 'ja
                    b.buildingTypesEn,
                    b.prefectures,
                    b.prefecturesEn,
+                   b.has_photo,
                    b.thumbnailUrl,
                    b.youtubeUrl,
                    b.created_at,
@@ -856,6 +902,9 @@ function searchBuildingsByCompletionYear($completionYear, $page = 1, $lang = 'ja
                     ];
                 }
             }
+            
+            // サムネイルURLを生成
+            $building['thumbnailUrl'] = generateThumbnailUrl($building['uid'] ?? '', $building['has_photo'] ?? null);
         }
         
         // デバッグ: 最終結果を出力
@@ -900,4 +949,33 @@ function searchBuildingsByCompletionYear($completionYear, $page = 1, $lang = 'ja
 }
 
 // parseYear関数は既にfunctions.phpで定義されているため、ここでは削除
+
+// ポップアップコンテンツを生成する関数
+function generatePopupContent($building, $lang = 'ja') {
+    // 英語版の場合はtitleEnとlocationEnを使用、日本語版ではtitleとlocationを使用
+    if ($lang === 'en') {
+        $title = !empty($building['titleEn']) ? $building['titleEn'] : $building['title'];
+        $location = !empty($building['locationEn']) ? $building['locationEn'] : $building['location'];
+    } else {
+        $title = $building['title'];
+        $location = $building['location'];
+    }
+    
+    $popupHtml = '<div style="padding: 8px; min-width: 200px;">';
+    $popupHtml .= '<h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">';
+    $popupHtml .= '<a href="index.php?building_slug=' . htmlspecialchars($building['slug']) . '&lang=' . $lang . '" style="color: #1e40af; text-decoration: none;">';
+    $popupHtml .= htmlspecialchars($title ?: 'Untitled');
+    $popupHtml .= '</a></h3>';
+    
+    if ($location) {
+        $popupHtml .= '<div style="margin-bottom: 8px; display: flex; align-items: center;">';
+        $popupHtml .= '<i data-lucide="map-pin" style="width: 16px; height: 16px; margin-right: 6px;"></i> ';
+        $popupHtml .= htmlspecialchars($location);
+        $popupHtml .= '</div>';
+    }
+    
+    $popupHtml .= '</div>';
+    
+    return $popupHtml;
+}
 ?>
