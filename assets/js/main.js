@@ -118,10 +118,16 @@ function getCurrentLocation() {
                 
                 // 現在地検索のURLにリダイレクト
                 const currentUrl = new URL(window.location);
+                
+                // 現在地検索以外のパラメータを削除（langは保持）
+                const lang = currentUrl.searchParams.get('lang') || 'ja';
+                currentUrl.search = ''; // 全てのパラメータをクリア
+                
+                // 現在地検索用のパラメータを設定
+                currentUrl.searchParams.set('lang', lang);
                 currentUrl.searchParams.set('lat', lat);
                 currentUrl.searchParams.set('lng', lng);
                 currentUrl.searchParams.set('radius', '5'); // デフォルト5km
-                currentUrl.searchParams.delete('q'); // キーワード検索をクリア
                 
                 window.location.href = currentUrl.toString();
             },
@@ -176,6 +182,35 @@ function showOnMap(lat, lng) {
 
 // 動画を開く
 function openVideo(url) {
+    window.open(url, '_blank');
+}
+
+// 付近を検索
+function searchNearby(lat, lng) {
+    const currentUrl = new URL(window.location);
+    
+    // 現在地検索以外のパラメータを削除（langは保持）
+    const lang = currentUrl.searchParams.get('lang') || 'ja';
+    currentUrl.search = ''; // 全てのパラメータをクリア
+    
+    // 付近検索用のパラメータを設定
+    currentUrl.searchParams.set('lang', lang);
+    currentUrl.searchParams.set('lat', lat);
+    currentUrl.searchParams.set('lng', lng);
+    currentUrl.searchParams.set('radius', '5'); // デフォルト5km
+    
+    window.location.href = currentUrl.toString();
+}
+
+// 経路を検索
+function getDirections(lat, lng) {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    window.open(url, '_blank');
+}
+
+// グーグルマップで見る
+function viewOnGoogleMaps(lat, lng) {
+    const url = `https://maps.google.com/?q=${lat},${lng}`;
     window.open(url, '_blank');
 }
 

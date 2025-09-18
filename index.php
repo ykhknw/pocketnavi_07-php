@@ -18,6 +18,7 @@ $radiusKm = isset($_GET['radius']) ? max(1, intval($_GET['radius'])) : 5;
 $buildingSlug = isset($_GET['building_slug']) ? trim($_GET['building_slug']) : '';
 $prefectures = isset($_GET['prefectures']) ? trim($_GET['prefectures']) : '';
 $architectsSlug = isset($_GET['architects_slug']) ? trim($_GET['architects_slug']) : '';
+$completionYears = isset($_GET['completionYears']) ? trim($_GET['completionYears']) : '';
 
 // 検索結果の取得
 $buildings = [];
@@ -25,6 +26,7 @@ $totalBuildings = 0;
 $totalPages = 0;
 $currentPage = $page;
 $limit = 10;
+$currentBuilding = null; // 個別建築物データ（Mapボタン用）
 
 if ($buildingSlug) {
     // 建物slug検索
@@ -33,9 +35,19 @@ if ($buildingSlug) {
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
     $currentPage = $searchResult['currentPage'];
+    
+    // 個別建築物の詳細データを取得（Mapボタン用）
+    $currentBuilding = getBuildingBySlugNew($buildingSlug, $lang);
 } elseif ($architectsSlug) {
     // 建築家slug検索
     $searchResult = searchBuildingsByArchitectSlug($architectsSlug, $lang, $limit, $page);
+    $buildings = $searchResult['buildings'];
+    $totalBuildings = $searchResult['total'];
+    $totalPages = $searchResult['totalPages'];
+    $currentPage = $searchResult['currentPage'];
+} elseif ($completionYears) {
+    // 建築年検索
+    $searchResult = searchBuildingsByCompletionYear($completionYears, $page, $lang, $limit);
     $buildings = $searchResult['buildings'];
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
@@ -124,7 +136,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <?php endif; ?>
                 
                 <!-- Search Debug Information -->
-                <?php if (($query || $architectsSlug) && isset($_GET['debug'])): ?>
+                <?php if (($query || $architectsSlug || $completionYears) && isset($_GET['debug'])): ?>
                     <div class="alert alert-info">
                         <h6>検索デバッグ情報:</h6>
                         <ul>
@@ -133,6 +145,9 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <?php endif; ?>
                             <?php if ($architectsSlug): ?>
                                 <li>建築家スラッグ: "<?php echo htmlspecialchars($architectsSlug); ?>"</li>
+                            <?php endif; ?>
+                            <?php if ($completionYears): ?>
+                                <li>建築年: "<?php echo htmlspecialchars($completionYears); ?>"</li>
                             <?php endif; ?>
                             <li>検索結果数: <?php echo count($buildings); ?></li>
                             <li>総件数: <?php echo $totalBuildings; ?></li>

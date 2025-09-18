@@ -97,14 +97,19 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                     </div>
                 </div>
                 
-                <?php if (!empty($building['buildingTypes'])): ?>
+                <?php 
+                $buildingTypes = $lang === 'ja' ? $building['buildingTypes'] : $building['buildingTypesEn'];
+                if (!empty($buildingTypes)): 
+                ?>
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
-                            <?php foreach ($building['buildingTypes'] as $type): ?>
-                                <span class="building-type-badge">
+                            <?php foreach ($buildingTypes as $type): ?>
+                                <a href="index.php?q=<?php echo urlencode($type); ?>&lang=<?php echo $lang; ?>" 
+                                   class="building-type-badge text-decoration-none"
+                                   title="<?php echo $lang === 'ja' ? 'この用途で検索' : 'Search by this building type'; ?>">
                                     <i class="fas fa-building me-1"></i>
                                     <?php echo htmlspecialchars($type); ?>
-                                </span>
+                                </a>
                             <?php endforeach; ?>
                         </div>
                     </div>
@@ -125,10 +130,12 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <?php if ($building['completionYears']): ?>
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
-                            <span class="completion-year-badge">
+                            <a href="index.php?completionYears=<?php echo urlencode($building['completionYears']); ?>&lang=<?php echo $lang; ?>" 
+                               class="completion-year-badge text-decoration-none"
+                               title="<?php echo $lang === 'ja' ? 'この建築年で検索' : 'Search by this completion year'; ?>">
                                 <i class="fas fa-calendar me-1"></i>
                                 <?php echo $building['completionYears']; ?>
-                            </span>
+                            </a>
                         </div>
                     </div>
                 <?php endif; ?>
