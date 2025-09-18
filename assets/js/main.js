@@ -102,7 +102,12 @@ function getCurrentLocation() {
     const btn = document.getElementById('getLocationBtn');
     const originalText = btn.innerHTML;
     
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>取得中...';
+    // 現在の言語を取得
+    const currentUrl = new URL(window.location);
+    const lang = currentUrl.searchParams.get('lang') || 'ja';
+    const loadingText = lang === 'ja' ? '取得中...' : 'Getting...';
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + loadingText;
     btn.disabled = true;
     
     if (navigator.geolocation) {
@@ -127,13 +132,19 @@ function getCurrentLocation() {
                 window.location.href = currentUrl.toString();
             },
             function(error) {
-                alert('位置情報の取得に失敗しました: ' + error.message);
+                const errorMessage = lang === 'ja' 
+                    ? '位置情報の取得に失敗しました: ' + error.message
+                    : 'Failed to get location: ' + error.message;
+                alert(errorMessage);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
         );
     } else {
-        alert('このブラウザは位置情報をサポートしていません。');
+        const errorMessage = lang === 'ja' 
+            ? 'このブラウザは位置情報をサポートしていません。'
+            : 'This browser does not support geolocation.';
+        alert(errorMessage);
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
@@ -214,8 +225,32 @@ function viewOnGoogleMaps(lat, lng) {
     window.open(url, '_blank');
 }
 
+// 言語切り替え機能
+function initLanguageSwitch() {
+    const languageSwitch = document.getElementById('languageSwitch');
+    if (languageSwitch) {
+        languageSwitch.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // 現在のURLを取得
+            const currentUrl = new URL(window.location);
+            const currentLang = currentUrl.searchParams.get('lang') || 'ja';
+            
+            // 言語を切り替え
+            const newLang = currentLang === 'ja' ? 'en' : 'ja';
+            currentUrl.searchParams.set('lang', newLang);
+            
+            // ページをリロード
+            window.location.href = currentUrl.toString();
+        });
+    }
+}
+
 // ページ読み込み時の初期化
 document.addEventListener('DOMContentLoaded', function() {
+    // 言語切り替え機能の初期化
+    initLanguageSwitch();
+    
     // ページ情報を確認
     console.log('DOMContentLoaded - Page info:', window.pageInfo);
     

@@ -20,23 +20,12 @@
             </ul>
             
             <ul class="navbar-nav">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown">
+                <li class="nav-item">
+                    <a class="nav-link language-switch d-flex align-items-center" href="#" id="languageSwitch" role="button">
                         <i data-lucide="globe" class="me-1" style="width: 16px; height: 16px;"></i>
-                        <?php echo $lang === 'ja' ? '日本語' : 'English'; ?>
+                        <span class="language-text"><?php echo $lang === 'ja' ? 'JA' : 'EN'; ?></span>
+                        <i data-lucide="arrow-right-left" class="ms-1 language-arrow" style="width: 14px; height: 14px;"></i>
                     </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="?<?php echo http_build_query(array_merge($_GET, ['lang' => 'ja'])); ?>">
-                                日本語
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="?<?php echo http_build_query(array_merge($_GET, ['lang' => 'en'])); ?>">
-                                English
-                            </a>
-                        </li>
-                    </ul>
                 </li>
             </ul>
         </div>

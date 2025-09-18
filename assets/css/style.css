@@ -322,6 +322,67 @@ footer {
     border-radius: 0.375rem !important;
 }
 
+/* 言語切り替えボタン */
+.language-switch {
+    background: white;
+    color: #374151 !important;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 6px 12px !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-decoration: none !important;
+}
+
+.language-switch:hover {
+    background: #f9fafb;
+    color: #111827 !important;
+    border-color: #9ca3af;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-decoration: none !important;
+}
+
+.language-switch:focus {
+    color: #111827 !important;
+    text-decoration: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+}
+
+.language-switch .language-text {
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 4px;
+}
+
+.language-switch .language-arrow {
+    transition: transform 0.2s ease;
+    color: #6b7280;
+}
+
+.language-switch:hover .language-arrow {
+    transform: rotate(180deg);
+    color: #374151;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .language-switch {
+        padding: 5px 10px !important;
+        font-size: 13px;
+    }
+    
+    .language-switch .language-text {
+        font-size: 13px;
+    }
+    
+    .language-switch i {
+        width: 12px !important;
+        height: 12px !important;
+    }
+}
+
 /* カスタムスクロールバー */
 ::-webkit-scrollbar {
     width: 8px;

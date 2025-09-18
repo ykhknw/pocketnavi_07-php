@@ -550,7 +550,12 @@ $popularSearches = getPopularSearches($lang);
             const btn = document.getElementById('getLocationBtn');
             const originalText = btn.innerHTML;
 
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>取得中...';
+            // 現在の言語を取得
+            const currentUrl = new URL(window.location);
+            const lang = currentUrl.searchParams.get('lang') || 'ja';
+            const loadingText = lang === 'ja' ? '取得中...' : 'Getting...';
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + loadingText;
             btn.disabled = true;
 
             if (navigator.geolocation) {
@@ -567,13 +572,19 @@ $popularSearches = getPopularSearches($lang);
                         window.location.href = currentUrl.toString();
                     },
                     function(error) {
-                        alert('位置情報の取得に失敗しました: ' + error.message);
+                        const errorMessage = lang === 'ja' 
+                            ? '位置情報の取得に失敗しました: ' + error.message
+                            : 'Failed to get location: ' + error.message;
+                        alert(errorMessage);
                         btn.innerHTML = originalText;
                         btn.disabled = false;
                     }
                 );
             } else {
-                alert('このブラウザは位置情報をサポートしていません。');
+                const errorMessage = lang === 'ja' 
+                    ? 'このブラウザは位置情報をサポートしていません。'
+                    : 'This browser does not support geolocation.';
+                alert(errorMessage);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
