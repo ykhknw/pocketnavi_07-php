@@ -2,7 +2,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="?lang=<?php echo $lang; ?>">
-            <img src="assets/images/landmark.svg" alt="PocketNavi" width="32" height="32" class="me-2">
+            <i data-lucide="landmark" class="me-2" style="width: 32px; height: 32px;"></i>
             <span class="fw-bold">PocketNavi</span>
         </a>
         
@@ -21,7 +21,8 @@
             
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown">
+                        <i data-lucide="globe" class="me-1" style="width: 16px; height: 16px;"></i>
                         <?php echo $lang === 'ja' ? '日本語' : 'English'; ?>
                     </a>
                     <ul class="dropdown-menu">

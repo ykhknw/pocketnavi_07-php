@@ -75,6 +75,14 @@ function addMarkers(buildings) {
                     closeButton: true,
                     autoClose: false,
                     closeOnClick: false
+                })
+                .on('popupopen', function() {
+                    // ポップアップが開かれた時にLucideアイコンを初期化
+                    setTimeout(() => {
+                        if (typeof lucide !== 'undefined') {
+                            lucide.createIcons();
+                        }
+                    }, 100);
                 });
             
             markers.push(marker);
@@ -87,7 +95,7 @@ function addMarkers(buildings) {
 function createPopupContent(building) {
     const lang = document.documentElement.lang || 'ja';
     const title = lang === 'ja' ? building.title : building.titleEn;
-    const location = lang === 'ja' ? building.location : building.locationEn;
+    const location = lang === 'ja' ? building.location : building.locationEn_from_datasheetChunkEn;
     
     return `
         <div style="padding: 8px; min-width: 200px;">
@@ -97,7 +105,7 @@ function createPopupContent(building) {
                     ${title}
                 </a>
             </h3>
-            ${location ? `<div style="margin-bottom: 8px;"><strong>${lang === 'ja' ? '所在地' : 'Location'}:</strong> ${location}</div>` : ''}
+            ${location ? `<div style="margin-bottom: 8px; display: flex; align-items: center;"><i data-lucide="map-pin" style="width: 16px; height: 16px; margin-right: 6px;"></i> ${location}</div>` : ''}
         </div>
     `;
 }
@@ -243,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 title: card.dataset.title,
                 titleEn: card.dataset['title-en'], // ハイフンを含む属性名は角括弧でアクセス
                 location: card.dataset.location,
-                locationEn: card.dataset['location-en'], // ハイフンを含む属性名は角括弧でアクセス
+                locationEn_from_datasheetChunkEn: card.dataset['location-en'], // ハイフンを含む属性名は角括弧でアクセス
                 slug: card.dataset.slug
             };
         }

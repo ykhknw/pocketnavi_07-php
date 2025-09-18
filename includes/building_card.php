@@ -56,7 +56,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                     <?php foreach ($building['architects'] as $architect): ?>
                                         <a href="index.php?architects_slug=<?php echo urlencode($architect['slug']); ?>&lang=<?php echo $lang; ?>" 
                                            class="architect-badge text-decoration-none">
-                                            <i class="fas fa-user me-1"></i>
+                                            <i data-lucide="circle-user-round" class="me-1" style="width: 12px; height: 12px;"></i>
                                             <?php echo htmlspecialchars($lang === 'ja' ? $architect['architectJa'] : $architect['architectEn']); ?>
                                         </a>
                                     <?php endforeach; ?>
@@ -82,14 +82,14 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                         <div class="d-flex justify-content-end gap-2">
                             <?php if (!empty($building['thumbnailUrl'])): ?>
                                 <span class="badge bg-success">
-                                    <i class="fas fa-image me-1"></i>
+                                    <i data-lucide="image" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo t('photos', $lang); ?>
                                 </span>
                             <?php endif; ?>
                             
                             <?php if ($building['youtubeUrl']): ?>
                                 <span class="badge bg-danger">
-                                    <i class="fab fa-youtube me-1"></i>
+                                    <i data-lucide="youtube" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo t('videos', $lang); ?>
                                 </span>
                             <?php endif; ?>
@@ -98,7 +98,12 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 </div>
                 
                 <?php 
-                $buildingTypes = $lang === 'ja' ? $building['buildingTypes'] : $building['buildingTypesEn'];
+                $buildingTypesRaw = $lang === 'ja' ? $building['buildingTypes'] : $building['buildingTypesEn'];
+                if (is_array($buildingTypesRaw)) {
+                    $buildingTypes = $buildingTypesRaw;
+                } else {
+                    $buildingTypes = !empty($buildingTypesRaw) ? explode(',', $buildingTypesRaw) : [];
+                }
                 if (!empty($buildingTypes)): 
                 ?>
                     <div class="mt-2">
@@ -107,7 +112,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                 <a href="index.php?q=<?php echo urlencode($type); ?>&lang=<?php echo $lang; ?>" 
                                    class="building-type-badge text-decoration-none"
                                    title="<?php echo $lang === 'ja' ? 'この用途で検索' : 'Search by this building type'; ?>">
-                                    <i class="fas fa-building me-1"></i>
+                                    <i data-lucide="building" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo htmlspecialchars($type); ?>
                                 </a>
                             <?php endforeach; ?>
@@ -120,7 +125,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                         <div class="d-flex flex-wrap gap-1">
                             <a href="index.php?prefectures=<?php echo urlencode($building['prefecturesEn']); ?>&lang=<?php echo $lang; ?>" 
                                class="prefecture-badge text-decoration-none">
-                                <i class="fas fa-map-marker-alt me-1"></i>
+                                <i data-lucide="map-pin" class="me-1" style="width: 12px; height: 12px;"></i>
                                 <?php echo htmlspecialchars($lang === 'ja' ? $building['prefectures'] : $building['prefecturesEn']); ?>
                             </a>
                         </div>
@@ -133,7 +138,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <a href="index.php?completionYears=<?php echo urlencode($building['completionYears']); ?>&lang=<?php echo $lang; ?>" 
                                class="completion-year-badge text-decoration-none"
                                title="<?php echo $lang === 'ja' ? 'この建築年で検索' : 'Search by this completion year'; ?>">
-                                <i class="fas fa-calendar me-1"></i>
+                                <i data-lucide="calendar" class="me-1" style="width: 12px; height: 12px;"></i>
                                 <?php echo $building['completionYears']; ?>
                             </a>
                         </div>
@@ -155,6 +160,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     <div class="card-footer bg-transparent">
         <div class="d-flex justify-content-between align-items-center">
             <small class="text-muted">
+                <i data-lucide="heart" class="me-1" style="width: 14px; height: 14px;"></i>
                 <?php echo $lang === 'ja' ? 'いいね' : 'Likes'; ?>: <?php echo $building['likes']; ?>
             </small>
             
@@ -163,14 +169,14 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                     <button type="button" 
                             class="btn btn-outline-danger btn-sm"
                             onclick="openVideo('<?php echo htmlspecialchars($building['youtubeUrl']); ?>')">
-                        <i class="fab fa-youtube"></i>
+                        <i data-lucide="youtube" style="width: 16px; height: 16px;"></i>
                     </button>
                 <?php endif; ?>
                 
                 <button type="button" 
                         class="btn btn-outline-primary btn-sm"
                         onclick="showOnMap(<?php echo $building['lat']; ?>, <?php echo $building['lng']; ?>)">
-                    <i class="fas fa-map-marker-alt"></i>
+                    <i data-lucide="map-pin" style="width: 16px; height: 16px;"></i>
                 </button>
             </div>
         </div>

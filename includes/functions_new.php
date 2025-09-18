@@ -2,6 +2,27 @@
 // 共通関数（新しい検索ロジック）
 
 /**
+ * データベース接続を取得
+ */
+function getDatabaseConnection() {
+    try {
+        $host = 'localhost';
+        $dbname = '_shinkenchiku_db';
+        $username = 'root';
+        $password = '';
+        
+        $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        
+        return $pdo;
+    } catch (PDOException $e) {
+        error_log("Database connection error: " . $e->getMessage());
+        throw new Exception("データベース接続エラーが発生しました。");
+    }
+}
+
+/**
  * 現在地検索用の関数
  */
 function searchBuildingsByLocation($userLat, $userLng, $radiusKm = 5, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
@@ -698,6 +719,177 @@ function searchBuildingsByPrefecture($prefecture, $page = 1, $lang = 'ja', $limi
         
     } catch (PDOException $e) {
         error_log("searchBuildingsByPrefecture error: " . $e->getMessage());
+        return [
+            'buildings' => [],
+            'total' => 0,
+            'totalPages' => 0,
+            'currentPage' => $page
+        ];
+    }
+}
+
+/**
+ * 建築年で建物を検索する関数
+ */
+function searchBuildingsByCompletionYear($completionYear, $page = 1, $lang = 'ja', $limit = 10) {
+    try {
+        $pdo = getDatabaseConnection();
+        
+        // デバッグ: 実際のcompletionYearsデータを確認
+        if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+            $debugSql = "SELECT DISTINCT completionYears FROM buildings_table_2 WHERE completionYears IS NOT NULL AND completionYears != '' ORDER BY completionYears LIMIT 20";
+            $debugStmt = $pdo->prepare($debugSql);
+            $debugStmt->execute();
+            $debugData = $debugStmt->fetchAll(PDO::FETCH_COLUMN);
+            error_log("Available completionYears: " . implode(', ', $debugData));
+            error_log("Searching for: " . $completionYear);
+            
+            // デバッグ情報をHTMLにも出力
+            echo "<div style='background: #f0f0f0; padding: 10px; margin: 10px; border: 1px solid #ccc;'>";
+            echo "<h3>デバッグ情報</h3>";
+            echo "<p><strong>検索対象:</strong> " . htmlspecialchars($completionYear) . "</p>";
+            echo "<p><strong>利用可能な年:</strong> " . htmlspecialchars(implode(', ', $debugData)) . "</p>";
+            echo "</div>";
+        }
+        
+        // オフセット計算
+        $offset = ($page - 1) * $limit;
+        
+        // テーブル名を定義
+        $architect_compositions_table = 'architect_compositions_2';
+        $buildings_table = 'buildings_table_2';
+        $building_architects_table = 'building_architects';
+        $individual_architects_table = 'individual_architects_3';
+        
+        // 総件数を取得（正しいテーブル結合）
+        $countSql = "
+            SELECT COUNT(DISTINCT b.building_id)
+            FROM $buildings_table b
+            LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+            LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+            LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+            WHERE CAST(b.completionYears AS CHAR) = ? 
+            AND b.location IS NOT NULL 
+            AND b.location != ''
+        ";
+        
+        $countStmt = $pdo->prepare($countSql);
+        $countStmt->execute([(string)$completionYear]);
+        $total = $countStmt->fetchColumn();
+        $totalPages = ceil($total / $limit);
+        
+        // デバッグ: 検索結果をログに出力
+        if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+            error_log("Total count for completionYear '$completionYear': $total");
+            echo "<p><strong>検索結果件数:</strong> $total</p>";
+        }
+        
+        // 建物データを取得（正しいテーブル結合）
+        $sql = "
+            SELECT b.building_id,
+                   b.title,
+                   b.titleEn,
+                   b.slug,
+                   b.lat,
+                   b.lng,
+                   b.location,
+                   b.locationEn_from_datasheetChunkEn as locationEn,
+                   b.completionYears,
+                   b.buildingTypes,
+                   b.buildingTypesEn,
+                   b.prefectures,
+                   b.prefecturesEn,
+                   b.thumbnailUrl,
+                   b.youtubeUrl,
+                   b.created_at,
+                   b.updated_at,
+                   0 as likes,
+                   GROUP_CONCAT(
+                       DISTINCT ia.name_ja 
+                       ORDER BY ba.architect_order, ac.order_index 
+                       SEPARATOR ' / '
+                   ) AS architectJa,
+                   GROUP_CONCAT(
+                       DISTINCT ia.name_en 
+                       ORDER BY ba.architect_order, ac.order_index 
+                       SEPARATOR ' / '
+                   ) AS architectEn,
+                   GROUP_CONCAT(
+                       DISTINCT ia.slug 
+                       ORDER BY ba.architect_order, ac.order_index 
+                       SEPARATOR ','
+                   ) AS architectSlugs,
+                   GROUP_CONCAT(
+                       DISTINCT ba.architect_id 
+                       ORDER BY ba.architect_order 
+                       SEPARATOR ','
+                   ) AS architectIds
+            FROM $buildings_table b
+            LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+            LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+            LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+            WHERE CAST(b.completionYears AS CHAR) = ? 
+            AND b.location IS NOT NULL 
+            AND b.location != ''
+            GROUP BY b.building_id
+            ORDER BY b.building_id
+            LIMIT {$offset}, {$limit}
+        ";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([(string)$completionYear]);
+        $buildings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // 建築家情報を配列に変換
+        foreach ($buildings as &$building) {
+            $building['architects'] = [];
+            if (!empty($building['architectJa'])) {
+                $architectJaList = explode(' / ', $building['architectJa']);
+                $architectEnList = explode(' / ', $building['architectEn']);
+                $architectSlugList = explode(',', $building['architectSlugs']);
+                
+                for ($i = 0; $i < count($architectJaList); $i++) {
+                    $building['architects'][] = [
+                        'architectJa' => $architectJaList[$i] ?? '',
+                        'architectEn' => $architectEnList[$i] ?? '',
+                        'slug' => $architectSlugList[$i] ?? ''
+                    ];
+                }
+            }
+        }
+        
+        // デバッグ: 最終結果を出力
+        if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+            echo "<p><strong>最終結果:</strong></p>";
+            echo "<ul>";
+            echo "<li>建物数: " . count($buildings) . "</li>";
+            echo "<li>総件数: $total</li>";
+            echo "<li>総ページ数: $totalPages</li>";
+            echo "<li>現在のページ: $page</li>";
+            echo "</ul>";
+        }
+        
+        return [
+            'buildings' => $buildings,
+            'total' => $total,
+            'totalPages' => $totalPages,
+            'currentPage' => $page
+        ];
+        
+    } catch (Exception $e) {
+        error_log("searchBuildingsByCompletionYear error: " . $e->getMessage());
+        error_log("searchBuildingsByCompletionYear stack trace: " . $e->getTraceAsString());
+        
+        // デバッグモードの場合はエラーを表示
+        if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+            echo "<div style='background: #ffebee; padding: 10px; margin: 10px; border: 1px solid #f44336;'>";
+            echo "<h3>エラー</h3>";
+            echo "<p><strong>エラーメッセージ:</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
+            echo "<p><strong>スタックトレース:</strong></p>";
+            echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+            echo "</div>";
+        }
+        
         return [
             'buildings' => [],
             'total' => 0,

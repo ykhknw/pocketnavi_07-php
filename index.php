@@ -102,6 +102,8 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Custom CSS -->
@@ -213,6 +215,11 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
             limit: <?php echo $limit; ?>
         };
         console.log('Page info set:', window.pageInfo); // デバッグ用
+        
+        // Lucideアイコンの初期化
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+        });
     </script>
 </body>
 </html>

@@ -7,7 +7,7 @@
             <div class="col-md-8">
                 <div class="input-group">
                     <span class="input-group-text">
-                        <i class="fas fa-search"></i>
+                        <i data-lucide="search" style="width: 16px; height: 16px;"></i>
                     </span>
                     <input type="text" 
                            class="form-control" 
@@ -23,7 +23,7 @@
                             class="btn btn-outline-primary" 
                             id="getLocationBtn"
                             onclick="getCurrentLocation()">
-                        <i class="fas fa-map-marker-alt me-1"></i>
+                        <i data-lucide="locate-fixed" class="me-1" style="width: 16px; height: 16px;"></i>
                         <?php echo t('currentLocation', $lang); ?>
                     </button>
                     
@@ -32,7 +32,7 @@
                             data-bs-toggle="collapse" 
                             data-bs-target="#advancedSearch"
                             aria-expanded="false">
-                        <i class="fas fa-filter me-1"></i>
+                        <i data-lucide="funnel" class="me-1" style="width: 16px; height: 16px;"></i>
                         <?php echo t('detailedSearch', $lang); ?>
                     </button>
                 </div>

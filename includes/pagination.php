@@ -5,7 +5,7 @@
             <li class="page-item">
                 <a class="page-link" 
                    href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>">
-                    <i class="fas fa-chevron-left"></i>
+                    <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
                 </a>
             </li>
         <?php endif; ?>
@@ -26,7 +26,7 @@
             <li class="page-item">
                 <a class="page-link" 
                    href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>">
-                    <i class="fas fa-chevron-right"></i>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
                 </a>
             </li>
         <?php endif; ?>

@@ -45,7 +45,7 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
             b.buildingTypes LIKE :{$keywordParam} OR
             b.buildingTypesEn LIKE :{$keywordParam} OR
             b.location LIKE :{$keywordParam} OR
-            b.locationEn LIKE :{$keywordParam} OR
+            b.locationEn_from_datasheetChunkEn LIKE :{$keywordParam} OR
             b.architectDetails LIKE :{$keywordParam} OR
             ia.name_ja LIKE :{$keywordParam} OR
             ia.name_en LIKE :{$keywordParam}

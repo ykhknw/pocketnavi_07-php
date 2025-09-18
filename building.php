@@ -263,11 +263,11 @@ $popularSearches = getPopularSearches($lang);
                                 
                                 <!-- Location -->
                                 <?php 
-                                $location = $lang === 'ja' ? $building['location'] : $building['locationEn'];
+                                $location = $lang === 'ja' ? $building['location'] : $building['locationEn_from_datasheetChunkEn'];
                                 
                                 // デバッグ情報（開発時のみ）
                                 if (isset($_GET['debug']) && $_GET['debug'] === '1') {
-                                    echo "<!-- Debug Location: lang=" . $lang . ", location=" . htmlspecialchars($building['location']) . ", locationEn=" . htmlspecialchars($building['locationEn']) . " -->";
+                                    echo "<!-- Debug Location: lang=" . $lang . ", location=" . htmlspecialchars($building['location']) . ", locationEn_from_datasheetChunkEn=" . htmlspecialchars($building['locationEn_from_datasheetChunkEn']) . " -->";
                                 }
                                 
                                 if ($location): 

@@ -14,7 +14,7 @@
                     <button type="button" 
                             class="btn btn-outline-success btn-sm"
                             onclick="searchNearby(<?php echo $currentBuilding['lat']; ?>, <?php echo $currentBuilding['lng']; ?>)">
-                        <i class="fas fa-search me-1"></i>
+                        <i data-lucide="map-pinned" class="me-1" style="width: 16px; height: 16px;"></i>
                         <?php echo $lang === 'ja' ? '付近を検索' : 'Search Nearby'; ?>
                     </button>
                     
@@ -22,7 +22,7 @@
                     <button type="button" 
                             class="btn btn-outline-warning btn-sm"
                             onclick="getDirections(<?php echo $currentBuilding['lat']; ?>, <?php echo $currentBuilding['lng']; ?>)">
-                        <i class="fas fa-route me-1"></i>
+                        <i data-lucide="route" class="me-1" style="width: 16px; height: 16px;"></i>
                         <?php echo $lang === 'ja' ? '経路を検索' : 'Get Directions'; ?>
                     </button>
                     
@@ -30,7 +30,7 @@
                     <button type="button" 
                             class="btn btn-outline-info btn-sm"
                             onclick="viewOnGoogleMaps(<?php echo $currentBuilding['lat']; ?>, <?php echo $currentBuilding['lng']; ?>)">
-                        <i class="fas fa-external-link-alt me-1"></i>
+                        <i data-lucide="external-link" class="me-1" style="width: 16px; height: 16px;"></i>
                         <?php echo $lang === 'ja' ? 'グーグルマップで見る' : 'View on Google Maps'; ?>
                     </button>
                 </div>
@@ -42,7 +42,7 @@
     <div class="card">
         <div class="card-header">
             <h6 class="mb-0">
-                <i class="fas fa-fire me-2"></i>
+                <i data-lucide="trending-up" class="me-2" style="width: 16px; height: 16px;"></i>
                 <?php echo t('popularSearches', $lang); ?>
             </h6>
         </div>
