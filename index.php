@@ -45,6 +45,7 @@ if ($buildingSlug) {
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
     $currentPage = $searchResult['currentPage'];
+    $architectInfo = $searchResult['architectInfo'];
 } elseif ($completionYears) {
     // 建築年検索
     $searchResult = searchBuildingsByCompletionYear($completionYears, $page, $lang, $limit);

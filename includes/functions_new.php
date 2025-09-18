@@ -89,10 +89,20 @@ function searchBuildingsByLocation($userLat, $userLng, $radiusKm = 5, $page = 1,
                    SEPARATOR ' / '
                ) AS architectJa,
                GROUP_CONCAT(
+                   DISTINCT ia.name_en 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ' / '
+               ) AS architectEn,
+               GROUP_CONCAT(
                    DISTINCT ba.architect_id 
                    ORDER BY ba.architect_order 
                    SEPARATOR ','
                ) AS architectIds,
+               GROUP_CONCAT(
+                   DISTINCT ia.slug 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ','
+               ) AS architectSlugs,
                (6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(b.lat)) * COS(RADIANS(b.lng) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(b.lat)))) AS distance
         FROM $buildings_table b
         LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
@@ -160,34 +170,50 @@ function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 1
         AND b.location IS NOT NULL AND b.location != ''
     ";
     
-    // データ取得クエリ
+    // 建築家の詳細情報を取得
+    $architectInfoSql = "
+        SELECT individual_architect_id, name_ja, name_en, individual_website, website_title
+        FROM $individual_architects_table 
+        WHERE slug = :architect_slug
+        LIMIT 1
+    ";
+    
+    $architectStmt = $db->prepare($architectInfoSql);
+    $architectStmt->bindValue(':architect_slug', $architectSlug);
+    $architectStmt->execute();
+    $architectInfo = $architectStmt->fetch(PDO::FETCH_ASSOC);
+    
+    // データ取得クエリ（全ての建築家情報を取得）
     $sql = "
         SELECT 
             b.*,
             GROUP_CONCAT(
-                DISTINCT ia.name_ja 
-                ORDER BY ba.architect_order, ac.order_index 
+                DISTINCT ia_all.name_ja 
+                ORDER BY ba_all.architect_order, ac_all.order_index 
                 SEPARATOR ' / '
             ) AS architectJa,
             GROUP_CONCAT(
-                DISTINCT ia.name_en 
-                ORDER BY ba.architect_order, ac.order_index 
+                DISTINCT ia_all.name_en 
+                ORDER BY ba_all.architect_order, ac_all.order_index 
                 SEPARATOR ' / '
             ) AS architectEn,
             GROUP_CONCAT(
-                DISTINCT ba.architect_id 
-                ORDER BY ba.architect_order 
+                DISTINCT ba_all.architect_id 
+                ORDER BY ba_all.architect_order 
                 SEPARATOR ','
             ) AS architectIds,
             GROUP_CONCAT(
-                DISTINCT ia.slug 
-                ORDER BY ba.architect_order, ac.order_index 
+                DISTINCT ia_all.slug 
+                ORDER BY ba_all.architect_order, ac_all.order_index 
                 SEPARATOR ','
             ) AS architectSlugs
         FROM $individual_architects_table ia
         INNER JOIN $architect_compositions_table ac ON ia.individual_architect_id = ac.individual_architect_id
         INNER JOIN $building_architects_table ba ON ac.architect_id = ba.architect_id
         INNER JOIN $buildings_table b ON ba.building_id = b.building_id
+        LEFT JOIN $building_architects_table ba_all ON b.building_id = ba_all.building_id
+        LEFT JOIN $architect_compositions_table ac_all ON ba_all.architect_id = ac_all.architect_id
+        LEFT JOIN $individual_architects_table ia_all ON ac_all.individual_architect_id = ia_all.individual_architect_id
         WHERE ia.slug = :architect_slug
         AND b.location IS NOT NULL AND b.location != ''
         GROUP BY b.building_id
@@ -227,7 +253,8 @@ function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 1
             'total' => $total,
             'totalPages' => $totalPages,
             'currentPage' => $page,
-            'limit' => $limit
+            'limit' => $limit,
+            'architectInfo' => $architectInfo
         ];
         
     } catch (PDOException $e) {
@@ -237,7 +264,8 @@ function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 1
             'total' => 0,
             'totalPages' => 0,
             'currentPage' => $page,
-            'limit' => $limit
+            'limit' => $limit,
+            'architectInfo' => null
         ];
     }
 }
@@ -467,6 +495,10 @@ function transformBuildingDataNew($row, $lang = 'ja') {
         error_log("Raw row location: " . ($row['location'] ?? 'NULL'));
         error_log("Processed titleEn: " . $titleEn);
         error_log("Processed locationEn: " . $locationEn);
+        error_log("Raw row architectJa: " . ($row['architectJa'] ?? 'NULL'));
+        error_log("Raw row architectEn: " . ($row['architectEn'] ?? 'NULL'));
+        error_log("Raw row architectSlugs: " . ($row['architectSlugs'] ?? 'NULL'));
+        error_log("Processed architects: " . print_r($architects, true));
         $debugCount++;
     }
     

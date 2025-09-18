@@ -85,21 +85,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                     
                     <div class="col-md-4 text-end">
                         
-                        <div class="d-flex justify-content-end gap-2">
-                            <?php if (!empty($building['thumbnailUrl'])): ?>
-                                <span class="badge bg-success">
-                                    <i data-lucide="image" class="me-1" style="width: 12px; height: 12px;"></i>
-                                    <?php echo t('photos', $lang); ?>
-                                </span>
-                            <?php endif; ?>
-                            
-                            <?php if ($building['youtubeUrl']): ?>
-                                <span class="badge bg-danger">
-                                    <i data-lucide="youtube" class="me-1" style="width: 12px; height: 12px;"></i>
-                                    <?php echo t('videos', $lang); ?>
-                                </span>
-                            <?php endif; ?>
-                        </div>
+                        <!-- 右端のバッジは削除（右下のボタンと重複のため） -->
                     </div>
                 </div>
                 
@@ -126,27 +112,25 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                     </div>
                 <?php endif; ?>
                 
-                <?php if (!empty($building['prefectures'])): ?>
+                <?php if (!empty($building['prefectures']) || $building['completionYears']): ?>
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
-                            <a href="index.php?prefectures=<?php echo urlencode($building['prefecturesEn']); ?>&lang=<?php echo $lang; ?>" 
-                               class="prefecture-badge text-decoration-none">
-                                <i data-lucide="map-pin" class="me-1" style="width: 12px; height: 12px;"></i>
-                                <?php echo htmlspecialchars($lang === 'ja' ? $building['prefectures'] : $building['prefecturesEn']); ?>
-                            </a>
-                        </div>
-                    </div>
-                <?php endif; ?>
-                
-                <?php if ($building['completionYears']): ?>
-                    <div class="mt-2">
-                        <div class="d-flex flex-wrap gap-1">
-                            <a href="index.php?completionYears=<?php echo urlencode($building['completionYears']); ?>&lang=<?php echo $lang; ?>" 
-                               class="completion-year-badge text-decoration-none"
-                               title="<?php echo $lang === 'ja' ? 'この建築年で検索' : 'Search by this completion year'; ?>">
-                                <i data-lucide="calendar" class="me-1" style="width: 12px; height: 12px;"></i>
-                                <?php echo $building['completionYears']; ?>
-                            </a>
+                            <?php if (!empty($building['prefectures'])): ?>
+                                <a href="index.php?prefectures=<?php echo urlencode($building['prefecturesEn']); ?>&lang=<?php echo $lang; ?>" 
+                                   class="prefecture-badge text-decoration-none">
+                                    <i data-lucide="map-pin" class="me-1" style="width: 12px; height: 12px;"></i>
+                                    <?php echo htmlspecialchars($lang === 'ja' ? $building['prefectures'] : $building['prefecturesEn']); ?>
+                                </a>
+                            <?php endif; ?>
+                            
+                            <?php if ($building['completionYears']): ?>
+                                <a href="index.php?completionYears=<?php echo urlencode($building['completionYears']); ?>&lang=<?php echo $lang; ?>" 
+                                   class="completion-year-badge text-decoration-none"
+                                   title="<?php echo $lang === 'ja' ? 'この建築年で検索' : 'Search by this completion year'; ?>">
+                                    <i data-lucide="calendar" class="me-1" style="width: 12px; height: 12px;"></i>
+                                    <?php echo $building['completionYears']; ?>
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -171,6 +155,14 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
             </small>
             
             <div class="btn-group btn-group-sm">
+                <?php if (!empty($building['thumbnailUrl'])): ?>
+                    <button type="button" 
+                            class="btn btn-outline-success btn-sm"
+                            onclick="openPhoto('<?php echo htmlspecialchars($building['thumbnailUrl']); ?>')">
+                        <i data-lucide="image" style="width: 16px; height: 16px;"></i>
+                    </button>
+                <?php endif; ?>
+                
                 <?php if ($building['youtubeUrl']): ?>
                     <button type="button" 
                             class="btn btn-outline-danger btn-sm"

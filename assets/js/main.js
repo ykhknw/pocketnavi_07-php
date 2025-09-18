@@ -180,6 +180,11 @@ function openVideo(url) {
     window.open(url, '_blank');
 }
 
+// 写真を開く
+function openPhoto(url) {
+    window.open(url, '_blank');
+}
+
 // 付近を検索
 function searchNearby(lat, lng) {
     const currentUrl = new URL(window.location);
