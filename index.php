@@ -124,6 +124,83 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <!-- Search Form -->
                 <?php include 'includes/search_form.php'; ?>
                 
+                <!-- Current Search Context Display -->
+                <?php if ($architectsSlug && isset($architectInfo) && $architectInfo): ?>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h2 class="h4 mb-2">
+                                <i data-lucide="circle-user-round" class="me-2" style="width: 20px; height: 20px;"></i>
+                                <?php echo $lang === 'ja' ? '建築家' : 'Architect'; ?>: 
+                                <span class="text-primary"><?php echo htmlspecialchars($architectInfo['name_ja'] ?? $architectInfo['name_en'] ?? ''); ?></span>
+                            </h2>
+                            <?php if (!empty($architectInfo['name_en']) && $architectInfo['name_ja'] !== $architectInfo['name_en']): ?>
+                                <p class="text-muted mb-0">
+                                    <?php echo htmlspecialchars($architectInfo['name_en']); ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php elseif ($buildingSlug && $currentBuilding): ?>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h2 class="h4 mb-2">
+                                <i data-lucide="building" class="me-2" style="width: 20px; height: 20px;"></i>
+                                <?php echo $lang === 'ja' ? '建築物' : 'Building'; ?>: 
+                                <span class="text-primary"><?php echo htmlspecialchars($currentBuilding['title'] ?? ''); ?></span>
+                            </h2>
+                            <?php if (!empty($currentBuilding['titleEn']) && $currentBuilding['title'] !== $currentBuilding['titleEn']): ?>
+                                <p class="text-muted mb-0">
+                                    <?php echo htmlspecialchars($currentBuilding['titleEn']); ?>
+                                </p>
+                            <?php endif; ?>
+                            
+                            <!-- Image Search Links -->
+                            <div class="mt-3">
+                                <p class="mb-2">
+                                    <i data-lucide="search" class="me-1" style="width: 16px; height: 16px;"></i>
+                                    <?php echo $lang === 'ja' ? '画像検索で見る' : 'View in Image Search'; ?>:
+                                </p>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <?php 
+                                    $buildingName = $currentBuilding['title'] ?? '';
+                                    $encodedName = urlencode($buildingName);
+                                    ?>
+                                    <a href="https://www.google.com/search?q=<?php echo $encodedName; ?>&tbm=isch" 
+                                       target="_blank" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i data-lucide="external-link" class="me-1" style="width: 14px; height: 14px;"></i>
+                                        Google画像検索
+                                    </a>
+                                    <a href="https://www.bing.com/images/search?q=<?php echo $encodedName; ?>" 
+                                       target="_blank" 
+                                       class="btn btn-outline-secondary btn-sm">
+                                        <i data-lucide="external-link" class="me-1" style="width: 14px; height: 14px;"></i>
+                                        Microsoft Bing画像検索
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <!-- Video Links -->
+                            <?php if (!empty($currentBuilding['youtubeUrl'])): ?>
+                                <div class="mt-3">
+                                    <p class="mb-2">
+                                        <i data-lucide="video" class="me-1" style="width: 16px; height: 16px;"></i>
+                                        <?php echo $lang === 'ja' ? '動画で見る' : 'View in Video'; ?>:
+                                    </p>
+                                    <div class="d-flex gap-3 flex-wrap">
+                                        <a href="<?php echo htmlspecialchars($currentBuilding['youtubeUrl']); ?>" 
+                                           target="_blank" 
+                                           class="btn btn-outline-danger btn-sm">
+                                            <i data-lucide="youtube" class="me-1" style="width: 14px; height: 14px;"></i>
+                                            Youtubeで見る
+                                        </a>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
                 <!-- Debug Information -->
                 <?php if ($debugInfo): ?>
                     <div class="alert alert-warning">
