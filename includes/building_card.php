@@ -60,7 +60,26 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <div class="card-text mb-2">
                                 <div class="d-flex flex-wrap gap-1">
                                     <?php foreach ($building['architects'] as $architect): ?>
-                                        <a href="index.php?architects_slug=<?php echo urlencode($architect['slug']); ?>&lang=<?php echo $lang; ?>" 
+                                        <?php 
+                                        // 現在の検索条件を保持したURLパラメータを作成
+                                        $urlParams = ['architects_slug' => $architect['slug'], 'lang' => $lang];
+                                        if (isset($_GET['q']) && $_GET['q']) {
+                                            $urlParams['q'] = $_GET['q'];
+                                        }
+                                        if (isset($_GET['prefectures']) && $_GET['prefectures']) {
+                                            $urlParams['prefectures'] = $_GET['prefectures'];
+                                        }
+                                        if (isset($_GET['completionYears']) && $_GET['completionYears']) {
+                                            $urlParams['completionYears'] = $_GET['completionYears'];
+                                        }
+                                        if (isset($_GET['photos']) && $_GET['photos']) {
+                                            $urlParams['photos'] = $_GET['photos'];
+                                        }
+                                        if (isset($_GET['videos']) && $_GET['videos']) {
+                                            $urlParams['videos'] = $_GET['videos'];
+                                        }
+                                        ?>
+                                        <a href="index.php?<?php echo http_build_query($urlParams); ?>" 
                                            class="architect-badge text-decoration-none">
                                             <i data-lucide="circle-user-round" class="me-1" style="width: 12px; height: 12px;"></i>
                                             <?php echo htmlspecialchars($lang === 'ja' ? $architect['architectJa'] : $architect['architectEn']); ?>
@@ -101,7 +120,23 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
                             <?php foreach ($buildingTypes as $type): ?>
-                                <a href="index.php?q=<?php echo urlencode($type); ?>&lang=<?php echo $lang; ?>" 
+                                <?php 
+                                // 現在の検索条件を保持したURLパラメータを作成
+                                $urlParams = ['q' => $type, 'lang' => $lang];
+                                if (isset($_GET['prefectures']) && $_GET['prefectures']) {
+                                    $urlParams['prefectures'] = $_GET['prefectures'];
+                                }
+                                if (isset($_GET['completionYears']) && $_GET['completionYears']) {
+                                    $urlParams['completionYears'] = $_GET['completionYears'];
+                                }
+                                if (isset($_GET['photos']) && $_GET['photos']) {
+                                    $urlParams['photos'] = $_GET['photos'];
+                                }
+                                if (isset($_GET['videos']) && $_GET['videos']) {
+                                    $urlParams['videos'] = $_GET['videos'];
+                                }
+                                ?>
+                                <a href="index.php?<?php echo http_build_query($urlParams); ?>" 
                                    class="building-type-badge text-decoration-none"
                                    title="<?php echo $lang === 'ja' ? 'この用途で検索' : 'Search by this building type'; ?>">
                                     <i data-lucide="building" class="me-1" style="width: 12px; height: 12px;"></i>
@@ -116,7 +151,23 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
                             <?php if (!empty($building['prefectures'])): ?>
-                                <a href="index.php?prefectures=<?php echo urlencode($building['prefecturesEn']); ?>&lang=<?php echo $lang; ?>" 
+                                <?php 
+                                // 現在の検索条件を保持したURLパラメータを作成
+                                $urlParams = ['prefectures' => $building['prefecturesEn'], 'lang' => $lang];
+                                if (isset($_GET['q']) && $_GET['q']) {
+                                    $urlParams['q'] = $_GET['q'];
+                                }
+                                if (isset($_GET['completionYears']) && $_GET['completionYears']) {
+                                    $urlParams['completionYears'] = $_GET['completionYears'];
+                                }
+                                if (isset($_GET['photos']) && $_GET['photos']) {
+                                    $urlParams['photos'] = $_GET['photos'];
+                                }
+                                if (isset($_GET['videos']) && $_GET['videos']) {
+                                    $urlParams['videos'] = $_GET['videos'];
+                                }
+                                ?>
+                                <a href="index.php?<?php echo http_build_query($urlParams); ?>" 
                                    class="prefecture-badge text-decoration-none">
                                     <i data-lucide="map-pin" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo htmlspecialchars($lang === 'ja' ? $building['prefectures'] : $building['prefecturesEn']); ?>
@@ -124,7 +175,23 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <?php endif; ?>
                             
                             <?php if ($building['completionYears']): ?>
-                                <a href="index.php?completionYears=<?php echo urlencode($building['completionYears']); ?>&lang=<?php echo $lang; ?>" 
+                                <?php 
+                                // 現在の検索条件を保持したURLパラメータを作成
+                                $urlParams = ['completionYears' => $building['completionYears'], 'lang' => $lang];
+                                if (isset($_GET['q']) && $_GET['q']) {
+                                    $urlParams['q'] = $_GET['q'];
+                                }
+                                if (isset($_GET['prefectures']) && $_GET['prefectures']) {
+                                    $urlParams['prefectures'] = $_GET['prefectures'];
+                                }
+                                if (isset($_GET['photos']) && $_GET['photos']) {
+                                    $urlParams['photos'] = $_GET['photos'];
+                                }
+                                if (isset($_GET['videos']) && $_GET['videos']) {
+                                    $urlParams['videos'] = $_GET['videos'];
+                                }
+                                ?>
+                                <a href="index.php?<?php echo http_build_query($urlParams); ?>" 
                                    class="completion-year-badge text-decoration-none"
                                    title="<?php echo $lang === 'ja' ? 'この建築年で検索' : 'Search by this completion year'; ?>">
                                     <i data-lucide="calendar" class="me-1" style="width: 12px; height: 12px;"></i>

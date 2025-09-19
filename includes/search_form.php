@@ -3,6 +3,12 @@
     <div class="card-body">
         <form method="GET" action="" class="row g-3">
             <input type="hidden" name="lang" value="<?php echo $lang; ?>">
+            <?php if ($prefectures): ?>
+                <input type="hidden" name="prefectures" value="<?php echo htmlspecialchars($prefectures); ?>">
+            <?php endif; ?>
+            <?php if ($completionYears): ?>
+                <input type="hidden" name="completionYears" value="<?php echo htmlspecialchars($completionYears); ?>">
+            <?php endif; ?>
             
             <div class="col-md-8">
                 <div class="input-group">
@@ -47,6 +53,15 @@
                     
                     <form method="GET" action="">
                         <input type="hidden" name="lang" value="<?php echo $lang; ?>">
+                        <?php if ($query): ?>
+                            <input type="hidden" name="q" value="<?php echo htmlspecialchars($query); ?>">
+                        <?php endif; ?>
+                        <?php if ($prefectures): ?>
+                            <input type="hidden" name="prefectures" value="<?php echo htmlspecialchars($prefectures); ?>">
+                        <?php endif; ?>
+                        <?php if ($completionYears): ?>
+                            <input type="hidden" name="completionYears" value="<?php echo htmlspecialchars($completionYears); ?>">
+                        <?php endif; ?>
                         
                         <div class="row">
                             <div class="col-md-6">

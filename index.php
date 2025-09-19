@@ -37,7 +37,7 @@ $limit = 10;
 $currentBuilding = null; // 個別建築物データ（Mapボタン用）
 
 if ($buildingSlug) {
-    // 建物slug検索
+    // 建物slug検索（個別建築物表示）
     $searchResult = searchBuildingsBySlug($buildingSlug, $lang, $limit);
     $buildings = $searchResult['buildings'];
     $totalBuildings = $searchResult['total'];
@@ -54,20 +54,6 @@ if ($buildingSlug) {
     $totalPages = $searchResult['totalPages'];
     $currentPage = $searchResult['currentPage'];
     $architectInfo = $searchResult['architectInfo'];
-} elseif ($completionYears) {
-    // 建築年検索
-    $searchResult = searchBuildingsByCompletionYear($completionYears, $page, $lang, $limit);
-    $buildings = $searchResult['buildings'];
-    $totalBuildings = $searchResult['total'];
-    $totalPages = $searchResult['totalPages'];
-    $currentPage = $searchResult['currentPage'];
-} elseif ($prefectures) {
-    // 都道府県検索
-    $searchResult = searchBuildingsByPrefecture($prefectures, $page, $lang, $limit);
-    $buildings = $searchResult['buildings'];
-    $totalBuildings = $searchResult['total'];
-    $totalPages = $searchResult['totalPages'];
-    $currentPage = $searchResult['currentPage'];
 } elseif ($userLat !== null && $userLng !== null) {
     // 現在地検索
     $searchResult = searchBuildingsByLocation($userLat, $userLng, $radiusKm, $page, $hasPhotos, $hasVideos, $lang, $limit);
@@ -75,20 +61,41 @@ if ($buildingSlug) {
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
     $currentPage = $searchResult['currentPage'];
-} elseif ($query || $hasPhotos || $hasVideos) {
-    // キーワード検索またはメディアフィルター検索
-    $searchResult = searchBuildingsNew($query, $page, $hasPhotos, $hasVideos, $lang, $limit);
-    $buildings = $searchResult['buildings'];
-    $totalBuildings = $searchResult['total'];
-    $totalPages = $searchResult['totalPages'];
-    $currentPage = $searchResult['currentPage'];
 } else {
-    // トップページ：has_photo優先順序で建築物を取得
-    $searchResult = searchBuildingsNew('', $page, false, false, $lang, $limit);
+    // 複数条件のAND検索または単一条件検索
+    // キーワード、都道府県、建築年、メディアフィルターを組み合わせて検索
+    
+    // デバッグ: 元の関数と新しい関数の結果を比較
+    if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+        // 元の関数で検索
+        $originalResult = searchBuildingsNew($query, $page, $hasPhotos, $hasVideos, $lang, $limit);
+        error_log("Original searchBuildingsNew result - total: " . $originalResult['total'] . ", buildings count: " . count($originalResult['buildings']));
+    }
+    
+    // 一時的に元の関数を使用（デバッグ用）
+    if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+        // デバッグモードでは常に元の関数を使用
+        $searchResult = searchBuildingsNew($query, $page, $hasPhotos, $hasVideos, $lang, $limit);
+        error_log("Using original function for debug mode");
+        
+        // 新しい関数も実行して比較
+        $newResult = searchBuildingsWithMultipleConditions($query, $prefectures, $completionYears, $hasPhotos, $hasVideos, $page, $lang, $limit);
+        error_log("New function result - total: " . $newResult['total'] . ", buildings count: " . count($newResult['buildings']));
+    } else {
+        // 通常モードでは新しい関数を使用
+        $searchResult = searchBuildingsWithMultipleConditions($query, $prefectures, $completionYears, $hasPhotos, $hasVideos, $page, $lang, $limit);
+    }
+    
     $buildings = $searchResult['buildings'];
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
     $currentPage = $searchResult['currentPage'];
+    
+    // デバッグ情報（トップページ用）
+    if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+        error_log("Top page search - query: '$query', prefectures: '$prefectures', completionYears: '$completionYears', hasPhotos: " . ($hasPhotos ? 'true' : 'false') . ", hasVideos: " . ($hasVideos ? 'true' : 'false'));
+        error_log("Top page search result - total: $totalBuildings, buildings count: " . count($buildings));
+    }
 }
 
 // 人気検索の取得
@@ -98,6 +105,20 @@ $popularSearches = getPopularSearches($lang);
 $debugInfo = null;
 if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     $debugInfo = debugDatabase();
+    
+    // データベース接続とテーブル確認
+    try {
+        $db = getDB();
+        $tables = ['buildings_table_2', 'building_architects', 'architect_compositions_2', 'individual_architects_3'];
+        foreach ($tables as $table) {
+            $stmt = $db->prepare("SELECT COUNT(*) FROM $table");
+            $stmt->execute();
+            $count = $stmt->fetchColumn();
+            error_log("Table $table: $count records");
+        }
+    } catch (Exception $e) {
+        error_log("Database debug error: " . $e->getMessage());
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -254,7 +275,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <?php endif; ?>
                 
                 <!-- Search Results Header -->
-                <?php if ($hasPhotos || $hasVideos): ?>
+                <?php if ($hasPhotos || $hasVideos || $completionYears || $prefectures || $query): ?>
                     <div class="alert alert-light mb-3">
                         <h6 class="mb-2">
                             <i data-lucide="filter" class="me-2" style="width: 16px; height: 16px;"></i>
@@ -283,6 +304,112 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                     </a>
                                 </span>
                             <?php endif; ?>
+                            <?php if ($completionYears): ?>
+                                <span class="architect-badge filter-badge">
+                                    <i data-lucide="calendar" class="me-1" style="width: 12px; height: 12px;"></i>
+                                    <?php echo htmlspecialchars($completionYears); ?>
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['completionYears' => null])); ?>" 
+                                       class="filter-remove-btn ms-2" 
+                                       title="<?php echo $lang === 'ja' ? 'フィルターを解除' : 'Remove filter'; ?>">
+                                        <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                                    </a>
+                                </span>
+                            <?php endif; ?>
+                            <?php if ($prefectures): ?>
+                                <span class="architect-badge filter-badge">
+                                    <i data-lucide="map-pin" class="me-1" style="width: 12px; height: 12px;"></i>
+                                    <?php 
+                                    // 都道府県名の英語→日本語変換配列
+                                    $prefectureTranslations = [
+                                        'Hokkaido' => '北海道',
+                                        'Aomori' => '青森県',
+                                        'Iwate' => '岩手県',
+                                        'Miyagi' => '宮城県',
+                                        'Akita' => '秋田県',
+                                        'Yamagata' => '山形県',
+                                        'Fukushima' => '福島県',
+                                        'Ibaraki' => '茨城県',
+                                        'Tochigi' => '栃木県',
+                                        'Gunma' => '群馬県',
+                                        'Saitama' => '埼玉県',
+                                        'Chiba' => '千葉県',
+                                        'Tokyo' => '東京都',
+                                        'Kanagawa' => '神奈川県',
+                                        'Niigata' => '新潟県',
+                                        'Toyama' => '富山県',
+                                        'Ishikawa' => '石川県',
+                                        'Fukui' => '福井県',
+                                        'Yamanashi' => '山梨県',
+                                        'Nagano' => '長野県',
+                                        'Gifu' => '岐阜県',
+                                        'Shizuoka' => '静岡県',
+                                        'Aichi' => '愛知県',
+                                        'Mie' => '三重県',
+                                        'Shiga' => '滋賀県',
+                                        'Kyoto' => '京都府',
+                                        'Osaka' => '大阪府',
+                                        'Hyogo' => '兵庫県',
+                                        'Nara' => '奈良県',
+                                        'Wakayama' => '和歌山県',
+                                        'Tottori' => '鳥取県',
+                                        'Shimane' => '島根県',
+                                        'Okayama' => '岡山県',
+                                        'Hiroshima' => '広島県',
+                                        'Yamaguchi' => '山口県',
+                                        'Tokushima' => '徳島県',
+                                        'Kagawa' => '香川県',
+                                        'Ehime' => '愛媛県',
+                                        'Kochi' => '高知県',
+                                        'Fukuoka' => '福岡県',
+                                        'Saga' => '佐賀県',
+                                        'Nagasaki' => '長崎県',
+                                        'Kumamoto' => '熊本県',
+                                        'Oita' => '大分県',
+                                        'Miyazaki' => '宮崎県',
+                                        'Kagoshima' => '鹿児島県',
+                                        'Okinawa' => '沖縄県'
+                                    ];
+                                    
+                                    // 言語に応じて都道府県名を表示
+                                    $displayPrefecture = $lang === 'ja' && isset($prefectureTranslations[$prefectures]) 
+                                        ? $prefectureTranslations[$prefectures] 
+                                        : $prefectures;
+                                    echo htmlspecialchars($displayPrefecture); 
+                                    ?>
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['prefectures' => null])); ?>" 
+                                       class="filter-remove-btn ms-2" 
+                                       title="<?php echo $lang === 'ja' ? 'フィルターを解除' : 'Remove filter'; ?>">
+                                        <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                                    </a>
+                                </span>
+                            <?php endif; ?>
+                            
+                            <?php if ($query): ?>
+                                <?php 
+                                // キーワードを全角・半角スペースで分割
+                                $keywords = preg_split('/[\s　]+/u', trim($query));
+                                $keywords = array_filter($keywords, function($keyword) {
+                                    return !empty(trim($keyword));
+                                });
+                                ?>
+                                <?php foreach ($keywords as $index => $keyword): ?>
+                                    <span class="architect-badge filter-badge">
+                                        <i data-lucide="search" class="me-1" style="width: 12px; height: 12px;"></i>
+                                        <?php echo htmlspecialchars($keyword); ?>
+                                        <a href="?<?php 
+                                            // 現在のキーワードを除いた新しいクエリを作成
+                                            $remainingKeywords = $keywords;
+                                            unset($remainingKeywords[$index]);
+                                            $newQuery = implode(' ', $remainingKeywords);
+                                            echo http_build_query(array_merge($_GET, ['q' => $newQuery ?: null])); 
+                                        ?>" 
+                                           class="filter-remove-btn ms-2" 
+                                           title="<?php echo $lang === 'ja' ? 'このキーワードを削除' : 'Remove this keyword'; ?>">
+                                            <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                                        </a>
+                                    </span>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -296,7 +423,72 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <li>hasVideos: <?php echo $hasVideos ? 'true' : 'false'; ?></li>
                             <li>検索条件: <?php echo $query || $hasPhotos || $hasVideos ? 'メディアフィルター検索' : 'トップページ'; ?></li>
                             <li>検索結果数: <?php echo count($buildings); ?></li>
+                            <li>総件数: <?php echo $totalBuildings; ?></li>
+                            <li>現在のページ: <?php echo $currentPage; ?></li>
+                            <li>総ページ数: <?php echo $totalPages; ?></li>
                         </ul>
+                    </div>
+                    
+                    <!-- データベース状態確認 -->
+                    <div class="alert alert-info">
+                        <h6>データベース状態確認:</h6>
+                        <?php
+                        try {
+                            $db = getDB();
+                            $tables = ['buildings_table_2', 'building_architects', 'architect_compositions_2', 'individual_architects_3'];
+                            echo '<ul>';
+                            foreach ($tables as $table) {
+                                $stmt = $db->prepare("SELECT COUNT(*) FROM $table");
+                                $stmt->execute();
+                                $count = $stmt->fetchColumn();
+                                echo "<li>テーブル $table: $count レコード</li>";
+                            }
+                            
+                            // 座標がある建築物数を確認
+                            $coordSql = "SELECT COUNT(*) FROM buildings_table_2 WHERE lat IS NOT NULL AND lng IS NOT NULL";
+                            $coordStmt = $db->prepare($coordSql);
+                            $coordStmt->execute();
+                            $buildingsWithCoords = $coordStmt->fetchColumn();
+                            echo "<li>座標がある建築物: $buildingsWithCoords 件</li>";
+                            
+                            // locationがある建築物数を確認
+                            $locationSql = "SELECT COUNT(*) FROM buildings_table_2 WHERE location IS NOT NULL AND location != ''";
+                            $locationStmt = $db->prepare($locationSql);
+                            $locationStmt->execute();
+                            $buildingsWithLocation = $locationStmt->fetchColumn();
+                            echo "<li>locationがある建築物: $buildingsWithLocation 件</li>";
+                            
+                            // 両方の条件を満たす建築物数を確認
+                            $bothSql = "SELECT COUNT(*) FROM buildings_table_2 WHERE lat IS NOT NULL AND lng IS NOT NULL AND location IS NOT NULL AND location != ''";
+                            $bothStmt = $db->prepare($bothSql);
+                            $bothStmt->execute();
+                            $buildingsWithBoth = $bothStmt->fetchColumn();
+                            echo "<li>座標とlocation両方がある建築物: $buildingsWithBoth 件</li>";
+                            
+                            echo '</ul>';
+                            
+                            // 元の関数の結果も表示
+                            if (isset($originalResult)) {
+                                echo '<h6>元の関数（searchBuildingsNew）の結果:</h6>';
+                                echo '<ul>';
+                                echo '<li>総件数: ' . $originalResult['total'] . '</li>';
+                                echo '<li>建築物数: ' . count($originalResult['buildings']) . '</li>';
+                                echo '</ul>';
+                            }
+                            
+                            // 新しい関数の結果も表示
+                            if (isset($newResult)) {
+                                echo '<h6>新しい関数（searchBuildingsWithMultipleConditions）の結果:</h6>';
+                                echo '<ul>';
+                                echo '<li>総件数: ' . $newResult['total'] . '</li>';
+                                echo '<li>建築物数: ' . count($newResult['buildings']) . '</li>';
+                                echo '</ul>';
+                            }
+                            
+                        } catch (Exception $e) {
+                            echo '<p style="color: red;">データベース接続エラー: ' . htmlspecialchars($e->getMessage()) . '</p>';
+                        }
+                        ?>
                     </div>
                 <?php endif; ?>
                 

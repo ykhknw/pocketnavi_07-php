@@ -1010,4 +1010,234 @@ function generatePopupContent($building, $lang = 'ja') {
     
     return $popupHtml;
 }
+
+/**
+ * 複数条件のAND検索を行う関数
+ */
+function searchBuildingsWithMultipleConditions($query, $prefectures, $completionYears, $hasPhotos, $hasVideos, $page = 1, $lang = 'ja', $limit = 10) {
+    $db = getDB();
+    $offset = ($page - 1) * $limit;
+    
+    // テーブル名の定義
+    $buildings_table = 'buildings_table_2';
+    $building_architects_table = 'building_architects';
+    $architect_compositions_table = 'architect_compositions_2';
+    $individual_architects_table = 'individual_architects_3';
+    
+    // WHERE句の構築
+    $whereClauses = [];
+    $params = [];
+    
+    // デバッグ: 入力パラメータを確認
+    if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+        error_log("searchBuildingsWithMultipleConditions input - query: '$query', prefectures: '$prefectures', completionYears: '$completionYears', hasPhotos: " . ($hasPhotos ? 'true' : 'false') . ", hasVideos: " . ($hasVideos ? 'true' : 'false'));
+        error_log("searchBuildingsWithMultipleConditions - page: $page, lang: $lang, limit: $limit");
+    }
+    
+    // キーワード検索条件
+    if (!empty($query)) {
+        // キーワードを分割（全角・半角スペースで分割）
+        $temp = str_replace('　', ' ', $query);
+        $keywords = array_filter(explode(' ', trim($temp)));
+        
+        if (!empty($keywords)) {
+            // 各キーワードに対してOR条件を構築し、全体をANDで結合
+            $keywordConditions = [];
+            foreach ($keywords as $keyword) {
+                $escapedKeyword = '%' . $keyword . '%';
+                $fieldConditions = [
+                    "b.title LIKE ?",
+                    "b.titleEn LIKE ?",
+                    "b.buildingTypes LIKE ?",
+                    "b.buildingTypesEn LIKE ?",
+                    "b.location LIKE ?",
+                    "b.locationEn_from_datasheetChunkEn LIKE ?",
+                    "ia.name_ja LIKE ?",
+                    "ia.name_en LIKE ?"
+                ];
+                $keywordConditions[] = '(' . implode(' OR ', $fieldConditions) . ')';
+                
+                // パラメータを8回追加（各フィールド用）
+                for ($i = 0; $i < 8; $i++) {
+                    $params[] = $escapedKeyword;
+                }
+            }
+            
+            if (!empty($keywordConditions)) {
+                $whereClauses[] = '(' . implode(' AND ', $keywordConditions) . ')';
+            }
+        }
+    }
+    
+    // 都道府県検索条件
+    if (!empty($prefectures)) {
+        $whereClauses[] = "b.prefecturesEn = ?";
+        $params[] = $prefectures;
+    }
+    
+    // 建築年検索条件
+    if (!empty($completionYears)) {
+        $whereClauses[] = "CAST(b.completionYears AS CHAR) = ?";
+        $params[] = (string)$completionYears;
+    }
+    
+    // メディアフィルター
+    if ($hasPhotos) {
+        $whereClauses[] = "b.has_photo IS NOT NULL AND b.has_photo != ''";
+    }
+    
+    if ($hasVideos) {
+        $whereClauses[] = "b.youtubeUrl IS NOT NULL AND b.youtubeUrl != ''";
+    }
+    
+    // 座標が存在するもののみ
+    $whereClauses[] = "b.lat IS NOT NULL AND b.lng IS NOT NULL";
+    
+    // locationカラムが空でないもののみ
+    $whereClauses[] = "b.location IS NOT NULL AND b.location != ''";
+    
+    // WHERE句を構築
+    $whereSql = " WHERE " . implode(" AND ", $whereClauses);
+    
+    // デバッグ: WHERE句を確認
+    if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+        error_log("WHERE clauses: " . print_r($whereClauses, true));
+        error_log("WHERE SQL: " . $whereSql);
+    }
+    
+    // --- 件数取得 ---
+    $countSql = "
+        SELECT COUNT(DISTINCT b.building_id)
+        FROM $buildings_table b
+        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+        $whereSql
+    ";
+    
+    $countStmt = $db->prepare($countSql);
+    $countStmt->execute($params);
+    $total = $countStmt->fetchColumn();
+    $totalPages = ceil($total / $limit);
+    
+    // --- データ取得クエリ ---
+    $sql = "
+        SELECT b.building_id,
+               b.uid,
+               b.title,
+               b.titleEn,
+               b.slug,
+               b.lat,
+               b.lng,
+               b.location,
+               b.locationEn_from_datasheetChunkEn as locationEn,
+               b.completionYears,
+               b.buildingTypes,
+               b.buildingTypesEn,
+               b.prefectures,
+               b.prefecturesEn,
+               b.has_photo,
+               b.thumbnailUrl,
+               b.youtubeUrl,
+               b.created_at,
+               b.updated_at,
+               0 as likes,
+               GROUP_CONCAT(
+                   DISTINCT ia.name_ja 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ' / '
+               ) AS architectJa,
+               GROUP_CONCAT(
+                   DISTINCT ia.name_en 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ' / '
+               ) AS architectEn,
+               GROUP_CONCAT(
+                   DISTINCT ba.architect_id 
+                   ORDER BY ba.architect_order 
+                   SEPARATOR ','
+               ) AS architectIds,
+               GROUP_CONCAT(
+                   DISTINCT ia.slug 
+                   ORDER BY ba.architect_order, ac.order_index 
+                   SEPARATOR ','
+               ) AS architectSlugs
+        FROM $buildings_table b
+        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
+        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
+        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
+        $whereSql
+        GROUP BY b.building_id
+        ORDER BY b.has_photo DESC, b.building_id DESC
+        LIMIT {$limit} OFFSET {$offset}
+    ";
+    
+    try {
+        // デバッグ情報を追加
+        if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+            // データベースの基本情報を確認
+            $debugSql = "SELECT COUNT(*) as total_buildings FROM $buildings_table";
+            $debugStmt = $db->prepare($debugSql);
+            $debugStmt->execute();
+            $totalBuildingsInDB = $debugStmt->fetchColumn();
+            error_log("Total buildings in database: $totalBuildingsInDB");
+            
+            // 座標がある建築物数を確認
+            $coordSql = "SELECT COUNT(*) as buildings_with_coords FROM $buildings_table WHERE lat IS NOT NULL AND lng IS NOT NULL";
+            $coordStmt = $db->prepare($coordSql);
+            $coordStmt->execute();
+            $buildingsWithCoords = $coordStmt->fetchColumn();
+            error_log("Buildings with coordinates: $buildingsWithCoords");
+            
+            // locationがある建築物数を確認
+            $locationSql = "SELECT COUNT(*) as buildings_with_location FROM $buildings_table WHERE location IS NOT NULL AND location != ''";
+            $locationStmt = $db->prepare($locationSql);
+            $locationStmt->execute();
+            $buildingsWithLocation = $locationStmt->fetchColumn();
+            error_log("Buildings with location: $buildingsWithLocation");
+            
+            error_log("searchBuildingsWithMultipleConditions SQL: " . $sql);
+            error_log("searchBuildingsWithMultipleConditions params: " . print_r($params, true));
+        }
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        
+        $buildings = [];
+        while ($row = $stmt->fetch()) {
+            $buildings[] = transformBuildingDataNew($row, $lang);
+        }
+        
+        // デバッグ情報を追加
+        if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+            error_log("searchBuildingsWithMultipleConditions result - total: $total, buildings count: " . count($buildings));
+        }
+        
+        return [
+            'buildings' => $buildings,
+            'total' => $total,
+            'totalPages' => $totalPages,
+            'currentPage' => $page
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("searchBuildingsWithMultipleConditions PDO error: " . $e->getMessage());
+        error_log("searchBuildingsWithMultipleConditions error trace: " . $e->getTraceAsString());
+        return [
+            'buildings' => [],
+            'total' => 0,
+            'totalPages' => 0,
+            'currentPage' => $page
+        ];
+    } catch (Exception $e) {
+        error_log("searchBuildingsWithMultipleConditions general error: " . $e->getMessage());
+        error_log("searchBuildingsWithMultipleConditions error trace: " . $e->getTraceAsString());
+        return [
+            'buildings' => [],
+            'total' => 0,
+            'totalPages' => 0,
+            'currentPage' => $page
+        ];
+    }
+}
 ?>
