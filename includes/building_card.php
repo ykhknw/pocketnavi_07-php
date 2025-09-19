@@ -73,7 +73,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                         <?php if ($building['location']): ?>
                             <p class="card-text mb-1">
                                 <small class="text-muted">
-                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    <i data-lucide="map-pin" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo htmlspecialchars($lang === 'ja' ? $building['location'] : $building['locationEn']); ?>
                                     <?php if (isset($building['distance'])): ?>
                                         <span class="ms-2"><i class="fas fa-route me-1"></i><?php echo $building['distance']; ?>km</span>

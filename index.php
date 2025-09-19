@@ -10,8 +10,16 @@ $lang = isset($_GET['lang']) && in_array($_GET['lang'], ['ja', 'en']) ? $_GET['l
 // 検索パラメータの取得
 $query = isset($_GET['q']) ? trim($_GET['q']) : '';
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$hasPhotos = isset($_GET['photos']) ? (bool)$_GET['photos'] : false;
-$hasVideos = isset($_GET['videos']) ? (bool)$_GET['videos'] : false;
+$hasPhotos = isset($_GET['photos']) && $_GET['photos'] ? true : false;
+$hasVideos = isset($_GET['videos']) && $_GET['videos'] ? true : false;
+
+// デバッグ情報
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    error_log("Debug - hasPhotos: " . ($hasPhotos ? 'true' : 'false') . " (raw: " . ($_GET['photos'] ?? 'not set') . ")");
+    error_log("Debug - hasVideos: " . ($hasVideos ? 'true' : 'false') . " (raw: " . ($_GET['videos'] ?? 'not set') . ")");
+    error_log("Debug - query: " . ($query ?: 'empty'));
+    error_log("Debug - GET params: " . print_r($_GET, true));
+}
 $userLat = isset($_GET['lat']) ? floatval($_GET['lat']) : null;
 $userLng = isset($_GET['lng']) ? floatval($_GET['lng']) : null;
 $radiusKm = isset($_GET['radius']) ? max(1, intval($_GET['radius'])) : 5;
@@ -67,8 +75,8 @@ if ($buildingSlug) {
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
     $currentPage = $searchResult['currentPage'];
-} elseif ($query) {
-    // キーワード検索
+} elseif ($query || $hasPhotos || $hasVideos) {
+    // キーワード検索またはメディアフィルター検索
     $searchResult = searchBuildingsNew($query, $page, $hasPhotos, $hasVideos, $lang, $limit);
     $buildings = $searchResult['buildings'];
     $totalBuildings = $searchResult['total'];
@@ -216,7 +224,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <?php endif; ?>
                 
                 <!-- Search Debug Information -->
-                <?php if (($query || $architectsSlug || $completionYears) && isset($_GET['debug'])): ?>
+                <?php if (($query || $architectsSlug || $completionYears || $hasPhotos || $hasVideos) && isset($_GET['debug'])): ?>
                     <div class="alert alert-info">
                         <h6>検索デバッグ情報:</h6>
                         <ul>
@@ -229,6 +237,12 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <?php if ($completionYears): ?>
                                 <li>建築年: "<?php echo htmlspecialchars($completionYears); ?>"</li>
                             <?php endif; ?>
+                            <?php if ($hasPhotos): ?>
+                                <li>写真フィルター: 有効</li>
+                            <?php endif; ?>
+                            <?php if ($hasVideos): ?>
+                                <li>動画フィルター: 有効</li>
+                            <?php endif; ?>
                             <li>検索結果数: <?php echo count($buildings); ?></li>
                             <li>総件数: <?php echo $totalBuildings; ?></li>
                             <li>現在のページ: <?php echo $page; ?></li>
@@ -236,6 +250,53 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <li>リミット: <?php echo $limit; ?></li>
                         </ul>
                         <p><strong>注意:</strong> エラーログを確認してください（通常は C:\xampp\apache\logs\error.log）</p>
+                    </div>
+                <?php endif; ?>
+                
+                <!-- Search Results Header -->
+                <?php if ($hasPhotos || $hasVideos): ?>
+                    <div class="alert alert-light mb-3">
+                        <h6 class="mb-2">
+                            <i data-lucide="filter" class="me-2" style="width: 16px; height: 16px;"></i>
+                            <?php echo $lang === 'ja' ? 'フィルター適用済み' : 'Filters Applied'; ?>
+                        </h6>
+                        <div class="d-flex gap-3 flex-wrap">
+                            <?php if ($hasPhotos): ?>
+                                <span class="architect-badge filter-badge">
+                                    <i data-lucide="image" class="me-1" style="width: 12px; height: 12px;"></i>
+                                    <?php echo $lang === 'ja' ? '写真あり' : 'With Photos'; ?>
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['photos' => null])); ?>" 
+                                       class="filter-remove-btn ms-2" 
+                                       title="<?php echo $lang === 'ja' ? 'フィルターを解除' : 'Remove filter'; ?>">
+                                        <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                                    </a>
+                                </span>
+                            <?php endif; ?>
+                            <?php if ($hasVideos): ?>
+                                <span class="architect-badge filter-badge">
+                                    <i data-lucide="youtube" class="me-1" style="width: 12px; height: 12px;"></i>
+                                    <?php echo $lang === 'ja' ? '動画あり' : 'With Videos'; ?>
+                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['videos' => null])); ?>" 
+                                       class="filter-remove-btn ms-2" 
+                                       title="<?php echo $lang === 'ja' ? 'フィルターを解除' : 'Remove filter'; ?>">
+                                        <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                                    </a>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
+                <!-- Debug Information for Media Filters -->
+                <?php if (isset($_GET['debug']) && $_GET['debug'] === '1'): ?>
+                    <div class="alert alert-warning">
+                        <h6>メディアフィルターデバッグ情報:</h6>
+                        <ul>
+                            <li>hasPhotos: <?php echo $hasPhotos ? 'true' : 'false'; ?></li>
+                            <li>hasVideos: <?php echo $hasVideos ? 'true' : 'false'; ?></li>
+                            <li>検索条件: <?php echo $query || $hasPhotos || $hasVideos ? 'メディアフィルター検索' : 'トップページ'; ?></li>
+                            <li>検索結果数: <?php echo count($buildings); ?></li>
+                        </ul>
                     </div>
                 <?php endif; ?>
                 
@@ -247,6 +308,12 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                 <?php echo $lang === 'ja' ? '建築物が見つかりませんでした。' : 'No buildings found.'; ?>
                                 <?php if ($query): ?>
                                     <br><small>検索キーワード: "<?php echo htmlspecialchars($query); ?>"</small>
+                                <?php endif; ?>
+                                <?php if ($hasPhotos): ?>
+                                    <br><small>写真フィルター: 有効</small>
+                                <?php endif; ?>
+                                <?php if ($hasVideos): ?>
+                                    <br><small>動画フィルター: 有効</small>
                                 <?php endif; ?>
                             </div>
                         </div>

@@ -484,6 +484,38 @@ footer {
     }
 }
 
+/* フィルターバッジの×ボタン */
+.filter-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.filter-remove-btn {
+    color: #6b7280 !important;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.8);
+    transition: all 0.2s ease;
+    margin-left: 4px;
+}
+
+.filter-remove-btn:hover {
+    color: #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.1);
+    transform: scale(1.1);
+}
+
+.filter-remove-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
 /* カスタムスクロールバー */
 ::-webkit-scrollbar {
     width: 8px;

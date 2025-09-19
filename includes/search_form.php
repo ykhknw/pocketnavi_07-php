@@ -37,12 +37,16 @@
                     </button>
                 </div>
             </div>
-            
-            <!-- Advanced Search -->
-            <div class="collapse mt-3" id="advancedSearch">
-                <div class="card">
-                    <div class="card-body">
-                        <h6 class="card-title"><?php echo t('detailedSearch', $lang); ?></h6>
+        </form>
+        
+        <!-- Advanced Search -->
+        <div class="collapse mt-3" id="advancedSearch">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title"><?php echo t('detailedSearch', $lang); ?></h6>
+                    
+                    <form method="GET" action="">
+                        <input type="hidden" name="lang" value="<?php echo $lang; ?>">
                         
                         <div class="row">
                             <div class="col-md-6">
@@ -51,6 +55,7 @@
                                            type="checkbox" 
                                            name="photos" 
                                            id="hasPhotos"
+                                           value="1"
                                            <?php echo $hasPhotos ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="hasPhotos">
                                         <?php echo t('withPhotos', $lang); ?>
@@ -64,6 +69,7 @@
                                            type="checkbox" 
                                            name="videos" 
                                            id="hasVideos"
+                                           value="1"
                                            <?php echo $hasVideos ? 'checked' : ''; ?>>
                                     <label class="form-check-label" for="hasVideos">
                                         <?php echo t('withVideos', $lang); ?>
@@ -83,10 +89,10 @@
                                 <?php echo t('clearFilters', $lang); ?>
                             </a>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
