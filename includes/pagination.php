@@ -4,7 +4,7 @@
         <?php if ($currentPage > 1): ?>
             <li class="page-item">
                 <a class="page-link" 
-                   href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>"
+                   href="/index.php?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage - 1])); ?>"
                    aria-label="Previous">
                     <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
                 </a>
@@ -41,7 +41,7 @@
                     </span>
                 <?php else: ?>
                     <a class="page-link" 
-                       href="?<?php echo http_build_query(array_merge($_GET, ['page' => $pageNum])); ?>"
+                       href="/index.php?<?php echo http_build_query(array_merge($_GET, ['page' => $pageNum])); ?>"
                        aria-label="Page <?php echo $pageNum; ?>">
                         <?php echo $pageNum; ?>
                     </a>
@@ -54,7 +54,7 @@
         <?php if ($currentPage < $totalPages): ?>
             <li class="page-item">
                 <a class="page-link" 
-                   href="?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>"
+                   href="/index.php?<?php echo http_build_query(array_merge($_GET, ['page' => $currentPage + 1])); ?>"
                    aria-label="Next">
                     <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
                 </a>

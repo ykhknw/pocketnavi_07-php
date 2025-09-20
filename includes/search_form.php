@@ -99,7 +99,7 @@
                                 <?php echo t('search', $lang); ?>
                             </button>
                             
-                            <a href="?lang=<?php echo $lang; ?>" class="btn btn-outline-secondary">
+                            <a href="/index.php?lang=<?php echo $lang; ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times me-1"></i>
                                 <?php echo t('clearFilters', $lang); ?>
                             </a>

@@ -114,7 +114,7 @@
             <?php if (!empty($popularSearches)): ?>
                 <div class="list-group list-group-flush">
                     <?php foreach ($popularSearches as $search): ?>
-                        <a href="?q=<?php echo urlencode($search['query']); ?>&lang=<?php echo $lang; ?>" 
+                        <a href="/index.php?q=<?php echo urlencode($search['query']); ?>&lang=<?php echo $lang; ?>" 
                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             <span><?php echo htmlspecialchars($search['query']); ?></span>
                             <span class="badge bg-primary rounded-pill"><?php echo $search['count']; ?></span>

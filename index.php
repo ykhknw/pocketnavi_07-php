@@ -18,6 +18,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     error_log("Debug - hasPhotos: " . ($hasPhotos ? 'true' : 'false') . " (raw: " . ($_GET['photos'] ?? 'not set') . ")");
     error_log("Debug - hasVideos: " . ($hasVideos ? 'true' : 'false') . " (raw: " . ($_GET['videos'] ?? 'not set') . ")");
     error_log("Debug - query: " . ($query ?: 'empty'));
+    error_log("Debug - buildingSlug: " . ($buildingSlug ?: 'empty'));
     error_log("Debug - GET params: " . print_r($_GET, true));
 }
 $userLat = isset($_GET['lat']) ? floatval($_GET['lat']) : null;
@@ -137,10 +138,10 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
     
     <!-- Favicon -->
-    <link rel="icon" href="assets/images/landmark.svg" type="image/svg+xml">
+    <link rel="icon" href="/assets/images/landmark.svg" type="image/svg+xml">
 </head>
 <body>
     <!-- Header -->
@@ -241,6 +242,19 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <li>検索テスト結果: <?php echo $debugInfo['search_test_result']; ?></li>
                         </ul>
                         <small>URLに?debug=1を追加するとこの情報が表示されます</small>
+                    </div>
+                <?php endif; ?>
+                
+                <!-- URL Debug Information -->
+                <?php if (isset($_GET['debug']) && $_GET['debug'] === '1'): ?>
+                    <div class="alert alert-info">
+                        <h6>URLデバッグ情報:</h6>
+                        <ul>
+                            <li>buildingSlug: "<?php echo htmlspecialchars($buildingSlug ?: 'empty'); ?>"</li>
+                            <li>lang: "<?php echo htmlspecialchars($lang); ?>"</li>
+                            <li>現在のURL: "<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>"</li>
+                            <li>GET parameters: <?php echo htmlspecialchars(print_r($_GET, true)); ?></li>
+                        </ul>
                     </div>
                 <?php endif; ?>
                 
@@ -543,7 +557,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Custom JS -->
-    <script src="assets/js/main.js"></script>
+    <script src="/assets/js/main.js"></script>
     
     <script>
         // ページ情報をJavaScriptに渡す

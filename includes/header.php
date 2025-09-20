@@ -1,7 +1,7 @@
 <!-- Header -->
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="?lang=<?php echo $lang; ?>">
+        <a class="navbar-brand d-flex align-items-center" href="/index.php?lang=<?php echo $lang; ?>">
             <i data-lucide="landmark" class="me-2" style="width: 32px; height: 32px;"></i>
             <span class="fw-bold">PocketNavi</span>
         </a>
@@ -13,7 +13,7 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="?lang=<?php echo $lang; ?>">
+                    <a class="nav-link" href="/index.php?lang=<?php echo $lang; ?>">
                         <?php echo $lang === 'ja' ? 'ホーム' : 'Home'; ?>
                     </a>
                 </li>

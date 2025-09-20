@@ -995,7 +995,7 @@ function generatePopupContent($building, $lang = 'ja') {
     
     $popupHtml = '<div style="padding: 8px; min-width: 200px;">';
     $popupHtml .= '<h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">';
-    $popupHtml .= '<a href="index.php?building_slug=' . htmlspecialchars($building['slug']) . '&lang=' . $lang . '" style="color: #1e40af; text-decoration: none;">';
+    $popupHtml .= '<a href="buildings/' . htmlspecialchars($building['slug']) . '" style="color: #1e40af; text-decoration: none;">';
     $popupHtml .= htmlspecialchars($title ?: 'Untitled');
     $popupHtml .= '</a></h3>';
     

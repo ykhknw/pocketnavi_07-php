@@ -31,7 +31,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
             <?php else: ?>
                 <div class="bg-light d-flex align-items-center justify-content-center rounded-start" 
                      style="height: 150px;">
-                    <img src="assets/images/landmark.svg" 
+                    <img src="/assets/images/landmark.svg" 
                          alt="PocketNavi" 
                          style="width: 60px; height: 60px; opacity: 0.3;">
                 </div>
@@ -47,7 +47,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                         <?php echo isset($globalIndex) ? $globalIndex : ($index + 1); ?>
                     </div>
                     <h5 class="card-title mb-0 flex-grow-1">
-                        <a href="index.php?building_slug=<?php echo urlencode($building['slug']); ?>&lang=<?php echo $lang; ?>" 
+                        <a href="buildings/<?php echo urlencode($building['slug']); ?>" 
                            class="text-decoration-none text-dark">
                             <?php echo htmlspecialchars($lang === 'ja' ? $building['title'] : $building['titleEn']); ?>
                         </a>
@@ -79,7 +79,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                             $urlParams['videos'] = $_GET['videos'];
                                         }
                                         ?>
-                                        <a href="index.php?<?php echo http_build_query($urlParams); ?>" 
+                                        <a href="/index.php?<?php echo http_build_query($urlParams); ?>" 
                                            class="architect-badge text-decoration-none">
                                             <i data-lucide="circle-user-round" class="me-1" style="width: 12px; height: 12px;"></i>
                                             <?php echo htmlspecialchars($lang === 'ja' ? $architect['architectJa'] : $architect['architectEn']); ?>
@@ -136,7 +136,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                     $urlParams['videos'] = $_GET['videos'];
                                 }
                                 ?>
-                                <a href="index.php?<?php echo http_build_query($urlParams); ?>" 
+                                <a href="/index.php?<?php echo http_build_query($urlParams); ?>" 
                                    class="building-type-badge text-decoration-none"
                                    title="<?php echo $lang === 'ja' ? 'この用途で検索' : 'Search by this building type'; ?>">
                                     <i data-lucide="building" class="me-1" style="width: 12px; height: 12px;"></i>
@@ -167,7 +167,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                     $urlParams['videos'] = $_GET['videos'];
                                 }
                                 ?>
-                                <a href="index.php?<?php echo http_build_query($urlParams); ?>" 
+                                <a href="/index.php?<?php echo http_build_query($urlParams); ?>" 
                                    class="prefecture-badge text-decoration-none">
                                     <i data-lucide="map-pin" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo htmlspecialchars($lang === 'ja' ? $building['prefectures'] : $building['prefecturesEn']); ?>
@@ -191,7 +191,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                     $urlParams['videos'] = $_GET['videos'];
                                 }
                                 ?>
-                                <a href="index.php?<?php echo http_build_query($urlParams); ?>" 
+                                <a href="/index.php?<?php echo http_build_query($urlParams); ?>" 
                                    class="completion-year-badge text-decoration-none"
                                    title="<?php echo $lang === 'ja' ? 'この建築年で検索' : 'Search by this completion year'; ?>">
                                     <i data-lucide="calendar" class="me-1" style="width: 12px; height: 12px;"></i>
