@@ -13,14 +13,6 @@ $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $hasPhotos = isset($_GET['photos']) && $_GET['photos'] ? true : false;
 $hasVideos = isset($_GET['videos']) && $_GET['videos'] ? true : false;
 
-// デバッグ情報
-if (isset($_GET['debug']) && $_GET['debug'] === '1') {
-    error_log("Debug - hasPhotos: " . ($hasPhotos ? 'true' : 'false') . " (raw: " . ($_GET['photos'] ?? 'not set') . ")");
-    error_log("Debug - hasVideos: " . ($hasVideos ? 'true' : 'false') . " (raw: " . ($_GET['videos'] ?? 'not set') . ")");
-    error_log("Debug - query: " . ($query ?: 'empty'));
-    error_log("Debug - buildingSlug: " . ($buildingSlug ?: 'empty'));
-    error_log("Debug - GET params: " . print_r($_GET, true));
-}
 $userLat = isset($_GET['lat']) ? floatval($_GET['lat']) : null;
 $userLng = isset($_GET['lng']) ? floatval($_GET['lng']) : null;
 $radiusKm = isset($_GET['radius']) ? max(1, intval($_GET['radius'])) : 5;
@@ -28,6 +20,16 @@ $buildingSlug = isset($_GET['building_slug']) ? trim($_GET['building_slug']) : '
 $prefectures = isset($_GET['prefectures']) ? trim($_GET['prefectures']) : '';
 $architectsSlug = isset($_GET['architects_slug']) ? trim($_GET['architects_slug']) : '';
 $completionYears = isset($_GET['completionYears']) ? trim($_GET['completionYears']) : '';
+
+// デバッグ情報
+if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+    error_log("Debug - hasPhotos: " . ($hasPhotos ? 'true' : 'false') . " (raw: " . ($_GET['photos'] ?? 'not set') . ")");
+    error_log("Debug - hasVideos: " . ($hasVideos ? 'true' : 'false') . " (raw: " . ($_GET['videos'] ?? 'not set') . ")");
+    error_log("Debug - query: " . ($query ?: 'empty'));
+    error_log("Debug - buildingSlug: " . ($buildingSlug ?: 'empty'));
+    error_log("Debug - architectsSlug: " . ($architectsSlug ?: 'empty'));
+    error_log("Debug - GET params: " . print_r($_GET, true));
+}
 
 // 検索結果の取得
 $buildings = [];
@@ -48,8 +50,8 @@ if ($buildingSlug) {
     // 個別建築物の詳細データを取得（Mapボタン用）
     $currentBuilding = getBuildingBySlugNew($buildingSlug, $lang);
 } elseif ($architectsSlug) {
-    // 建築家slug検索
-    $searchResult = searchBuildingsByArchitectSlug($architectsSlug, $lang, $limit, $page);
+    // 建築家slug検索（completionYears、prefectures、queryフィルターも適用）
+    $searchResult = searchBuildingsByArchitectSlug($architectsSlug, $lang, $limit, $page, $completionYears, $prefectures, $query);
     $buildings = $searchResult['buildings'];
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
@@ -289,18 +291,38 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <?php endif; ?>
                 
                 <!-- Search Results Header -->
-                <?php if ($hasPhotos || $hasVideos || $completionYears || $prefectures || $query): ?>
+                <?php if ($hasPhotos || $hasVideos || $completionYears || $prefectures || $query || $architectsSlug): ?>
                     <div class="alert alert-light mb-3">
                         <h6 class="mb-2">
                             <i data-lucide="filter" class="me-2" style="width: 16px; height: 16px;"></i>
                             <?php echo $lang === 'ja' ? 'フィルター適用済み' : 'Filters Applied'; ?>
                         </h6>
                         <div class="d-flex gap-3 flex-wrap">
+                            <?php if ($architectsSlug): ?>
+                                <span class="architect-badge filter-badge">
+                                    <i data-lucide="circle-user-round" class="me-1" style="width: 12px; height: 12px;"></i>
+                                    <?php 
+                                    // 建築家名を取得
+                                    $architectName = '';
+                                    if (isset($architectInfo) && $architectInfo) {
+                                        $architectName = $lang === 'ja' ? 
+                                            ($architectInfo['name_ja'] ?? $architectInfo['name_en'] ?? '') : 
+                                            ($architectInfo['name_en'] ?? $architectInfo['name_ja'] ?? '');
+                                    }
+                                    echo htmlspecialchars($architectName); 
+                                    ?>
+                                    <a href="/index.php?<?php echo http_build_query(array_merge($_GET, ['architects_slug' => null])); ?>" 
+                                       class="filter-remove-btn ms-2" 
+                                       title="<?php echo $lang === 'ja' ? 'フィルターを解除' : 'Remove filter'; ?>">
+                                        <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+                                    </a>
+                                </span>
+                            <?php endif; ?>
                             <?php if ($hasPhotos): ?>
                                 <span class="architect-badge filter-badge">
                                     <i data-lucide="image" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo $lang === 'ja' ? '写真あり' : 'With Photos'; ?>
-                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['photos' => null])); ?>" 
+                                    <a href="/index.php?<?php echo http_build_query(array_merge($_GET, ['photos' => null])); ?>" 
                                        class="filter-remove-btn ms-2" 
                                        title="<?php echo $lang === 'ja' ? 'フィルターを解除' : 'Remove filter'; ?>">
                                         <i data-lucide="x" style="width: 12px; height: 12px;"></i>
@@ -311,7 +333,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                 <span class="architect-badge filter-badge">
                                     <i data-lucide="youtube" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo $lang === 'ja' ? '動画あり' : 'With Videos'; ?>
-                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['videos' => null])); ?>" 
+                                    <a href="/index.php?<?php echo http_build_query(array_merge($_GET, ['videos' => null])); ?>" 
                                        class="filter-remove-btn ms-2" 
                                        title="<?php echo $lang === 'ja' ? 'フィルターを解除' : 'Remove filter'; ?>">
                                         <i data-lucide="x" style="width: 12px; height: 12px;"></i>
@@ -322,7 +344,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                 <span class="architect-badge filter-badge">
                                     <i data-lucide="calendar" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo htmlspecialchars($completionYears); ?>
-                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['completionYears' => null])); ?>" 
+                                    <a href="/index.php?<?php echo http_build_query(array_merge($_GET, ['completionYears' => null])); ?>" 
                                        class="filter-remove-btn ms-2" 
                                        title="<?php echo $lang === 'ja' ? 'フィルターを解除' : 'Remove filter'; ?>">
                                         <i data-lucide="x" style="width: 12px; height: 12px;"></i>
@@ -390,7 +412,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                         : $prefectures;
                                     echo htmlspecialchars($displayPrefecture); 
                                     ?>
-                                    <a href="?<?php echo http_build_query(array_merge($_GET, ['prefectures' => null])); ?>" 
+                                    <a href="/index.php?<?php echo http_build_query(array_merge($_GET, ['prefectures' => null])); ?>" 
                                        class="filter-remove-btn ms-2" 
                                        title="<?php echo $lang === 'ja' ? 'フィルターを解除' : 'Remove filter'; ?>">
                                         <i data-lucide="x" style="width: 12px; height: 12px;"></i>
@@ -410,7 +432,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                     <span class="architect-badge filter-badge">
                                         <i data-lucide="search" class="me-1" style="width: 12px; height: 12px;"></i>
                                         <?php echo htmlspecialchars($keyword); ?>
-                                        <a href="?<?php 
+                                        <a href="/index.php?<?php 
                                             // 現在のキーワードを除いた新しいクエリを作成
                                             $remainingKeywords = $keywords;
                                             unset($remainingKeywords[$index]);

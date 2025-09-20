@@ -146,7 +146,7 @@ function searchBuildingsByLocation($userLat, $userLng, $radiusKm = 5, $page = 1,
 /**
  * 建築家の建築物を取得（ページネーション対応）
  */
-function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 10, $page = 1) {
+function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 10, $page = 1, $completionYears = '', $prefectures = '', $query = '') {
     $db = getDB();
     $offset = ($page - 1) * $limit;
     
@@ -158,6 +158,9 @@ function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 1
     
     // デバッグ情報を追加
     error_log("searchBuildingsByArchitectSlug: Looking for architect slug: " . $architectSlug);
+    error_log("searchBuildingsByArchitectSlug: completionYears: " . ($completionYears ?: 'empty'));
+    error_log("searchBuildingsByArchitectSlug: prefectures: " . ($prefectures ?: 'empty'));
+    error_log("searchBuildingsByArchitectSlug: query: " . ($query ?: 'empty'));
     
     // 件数取得クエリ
     $countSql = "
@@ -169,6 +172,21 @@ function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 1
         WHERE ia.slug = :architect_slug
         AND b.location IS NOT NULL AND b.location != ''
     ";
+    
+    // completionYearsフィルターを追加
+    if (!empty($completionYears)) {
+        $countSql .= " AND b.completionYears = :completion_years";
+    }
+    
+    // prefecturesフィルターを追加
+    if (!empty($prefectures)) {
+        $countSql .= " AND b.prefecturesEn = :prefectures";
+    }
+    
+    // queryフィルターを追加（キーワード検索）
+    if (!empty($query)) {
+        $countSql .= " AND (b.title LIKE :query1 OR b.titleEn LIKE :query2 OR b.location LIKE :query3 OR b.locationEn_from_datasheetChunkEn LIKE :query4 OR b.buildingTypes LIKE :query5 OR b.buildingTypesEn LIKE :query6)";
+    }
     
     // 建築家の詳細情報を取得
     $architectInfoSql = "
@@ -216,6 +234,24 @@ function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 1
         LEFT JOIN $individual_architects_table ia_all ON ac_all.individual_architect_id = ia_all.individual_architect_id
         WHERE ia.slug = :architect_slug
         AND b.location IS NOT NULL AND b.location != ''
+    ";
+    
+    // completionYearsフィルターを追加
+    if (!empty($completionYears)) {
+        $sql .= " AND b.completionYears = :completion_years";
+    }
+    
+    // prefecturesフィルターを追加
+    if (!empty($prefectures)) {
+        $sql .= " AND b.prefecturesEn = :prefectures";
+    }
+    
+    // queryフィルターを追加（キーワード検索）
+    if (!empty($query)) {
+        $sql .= " AND (b.title LIKE :query1 OR b.titleEn LIKE :query2 OR b.location LIKE :query3 OR b.locationEn_from_datasheetChunkEn LIKE :query4 OR b.buildingTypes LIKE :query5 OR b.buildingTypesEn LIKE :query6)";
+    }
+    
+    $sql .= "
         GROUP BY b.building_id
         ORDER BY b.has_photo DESC, b.building_id DESC
         LIMIT {$limit} OFFSET {$offset}
@@ -223,10 +259,25 @@ function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 1
     
     try {
         error_log("searchBuildingsByArchitectSlug SQL: " . $sql);
+        error_log("searchBuildingsByArchitectSlug Count SQL: " . $countSql);
         
         // 総件数取得
         $countStmt = $db->prepare($countSql);
         $countStmt->bindValue(':architect_slug', $architectSlug);
+        if (!empty($completionYears)) {
+            $countStmt->bindValue(':completion_years', $completionYears);
+        }
+        if (!empty($prefectures)) {
+            $countStmt->bindValue(':prefectures', $prefectures);
+        }
+        if (!empty($query)) {
+            $countStmt->bindValue(':query1', '%' . $query . '%');
+            $countStmt->bindValue(':query2', '%' . $query . '%');
+            $countStmt->bindValue(':query3', '%' . $query . '%');
+            $countStmt->bindValue(':query4', '%' . $query . '%');
+            $countStmt->bindValue(':query5', '%' . $query . '%');
+            $countStmt->bindValue(':query6', '%' . $query . '%');
+        }
         $countStmt->execute();
         $total = $countStmt->fetchColumn();
         $totalPages = ceil($total / $limit);
@@ -234,6 +285,20 @@ function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 1
         // データ取得
         $stmt = $db->prepare($sql);
         $stmt->bindValue(':architect_slug', $architectSlug);
+        if (!empty($completionYears)) {
+            $stmt->bindValue(':completion_years', $completionYears);
+        }
+        if (!empty($prefectures)) {
+            $stmt->bindValue(':prefectures', $prefectures);
+        }
+        if (!empty($query)) {
+            $stmt->bindValue(':query1', '%' . $query . '%');
+            $stmt->bindValue(':query2', '%' . $query . '%');
+            $stmt->bindValue(':query3', '%' . $query . '%');
+            $stmt->bindValue(':query4', '%' . $query . '%');
+            $stmt->bindValue(':query5', '%' . $query . '%');
+            $stmt->bindValue(':query6', '%' . $query . '%');
+        }
         $stmt->execute();
         
         $buildings = [];
@@ -995,7 +1060,7 @@ function generatePopupContent($building, $lang = 'ja') {
     
     $popupHtml = '<div style="padding: 8px; min-width: 200px;">';
     $popupHtml .= '<h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">';
-    $popupHtml .= '<a href="buildings/' . htmlspecialchars($building['slug']) . '" style="color: #1e40af; text-decoration: none;">';
+    $popupHtml .= '<a href="/buildings/' . htmlspecialchars($building['slug']) . '" style="color: #1e40af; text-decoration: none;">';
     $popupHtml .= htmlspecialchars($title ?: 'Untitled');
     $popupHtml .= '</a></h3>';
     

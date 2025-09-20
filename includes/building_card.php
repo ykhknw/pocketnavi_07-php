@@ -47,7 +47,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                         <?php echo isset($globalIndex) ? $globalIndex : ($index + 1); ?>
                     </div>
                     <h5 class="card-title mb-0 flex-grow-1">
-                        <a href="buildings/<?php echo urlencode($building['slug']); ?>" 
+                        <a href="/buildings/<?php echo urlencode($building['slug']); ?>" 
                            class="text-decoration-none text-dark">
                             <?php echo htmlspecialchars($lang === 'ja' ? $building['title'] : $building['titleEn']); ?>
                         </a>
@@ -79,7 +79,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                             $urlParams['videos'] = $_GET['videos'];
                                         }
                                         ?>
-                                        <a href="/index.php?<?php echo http_build_query($urlParams); ?>" 
+                                        <a href="/architects/<?php echo urlencode($architect['slug']); ?>/" 
                                            class="architect-badge text-decoration-none">
                                             <i data-lucide="circle-user-round" class="me-1" style="width: 12px; height: 12px;"></i>
                                             <?php echo htmlspecialchars($lang === 'ja' ? $architect['architectJa'] : $architect['architectEn']); ?>
@@ -115,28 +115,54 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 } else {
                     $buildingTypes = !empty($buildingTypesRaw) ? explode(',', $buildingTypesRaw) : [];
                 }
+                // 各要素の前後のスペースを削除
+                $buildingTypes = array_map('trim', $buildingTypes);
+                // 空の要素を削除
+                $buildingTypes = array_filter($buildingTypes, function($type) {
+                    return !empty(trim($type));
+                });
                 if (!empty($buildingTypes)): 
                 ?>
                     <div class="mt-2">
                         <div class="d-flex flex-wrap gap-1">
                             <?php foreach ($buildingTypes as $type): ?>
                                 <?php 
-                                // 現在の検索条件を保持したURLパラメータを作成
-                                $urlParams = ['q' => $type, 'lang' => $lang];
-                                if (isset($_GET['prefectures']) && $_GET['prefectures']) {
-                                    $urlParams['prefectures'] = $_GET['prefectures'];
-                                }
-                                if (isset($_GET['completionYears']) && $_GET['completionYears']) {
-                                    $urlParams['completionYears'] = $_GET['completionYears'];
-                                }
-                                if (isset($_GET['photos']) && $_GET['photos']) {
-                                    $urlParams['photos'] = $_GET['photos'];
-                                }
-                                if (isset($_GET['videos']) && $_GET['videos']) {
-                                    $urlParams['videos'] = $_GET['videos'];
+                                // 現在のページが建築家ページかどうかを判定
+                                $isArchitectPage = isset($_GET['architects_slug']) && !empty($_GET['architects_slug']);
+                                
+                                if ($isArchitectPage) {
+                                    // 建築家ページの場合：既存のパラメータを保持してqパラメータを追加
+                                    $architectSlug = $_GET['architects_slug'];
+                                    $urlParams = ['q' => $type];
+                                    
+                                    // 既存のパラメータを保持
+                                    if (isset($_GET['completionYears']) && !empty($_GET['completionYears'])) {
+                                        $urlParams['completionYears'] = $_GET['completionYears'];
+                                    }
+                                    if (isset($_GET['prefectures']) && !empty($_GET['prefectures'])) {
+                                        $urlParams['prefectures'] = $_GET['prefectures'];
+                                    }
+                                    
+                                    $url = "/architects/{$architectSlug}/?" . http_build_query($urlParams);
+                                } else {
+                                    // 通常ページの場合：既存のロジックを使用
+                                    $urlParams = ['q' => $type, 'lang' => $lang];
+                                    if (isset($_GET['prefectures']) && $_GET['prefectures']) {
+                                        $urlParams['prefectures'] = $_GET['prefectures'];
+                                    }
+                                    if (isset($_GET['completionYears']) && $_GET['completionYears']) {
+                                        $urlParams['completionYears'] = $_GET['completionYears'];
+                                    }
+                                    if (isset($_GET['photos']) && $_GET['photos']) {
+                                        $urlParams['photos'] = $_GET['photos'];
+                                    }
+                                    if (isset($_GET['videos']) && $_GET['videos']) {
+                                        $urlParams['videos'] = $_GET['videos'];
+                                    }
+                                    $url = "/index.php?" . http_build_query($urlParams);
                                 }
                                 ?>
-                                <a href="/index.php?<?php echo http_build_query($urlParams); ?>" 
+                                <a href="<?php echo $url; ?>" 
                                    class="building-type-badge text-decoration-none"
                                    title="<?php echo $lang === 'ja' ? 'この用途で検索' : 'Search by this building type'; ?>">
                                     <i data-lucide="building" class="me-1" style="width: 12px; height: 12px;"></i>
@@ -152,22 +178,39 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                         <div class="d-flex flex-wrap gap-1">
                             <?php if (!empty($building['prefectures'])): ?>
                                 <?php 
-                                // 現在の検索条件を保持したURLパラメータを作成
-                                $urlParams = ['prefectures' => $building['prefecturesEn'], 'lang' => $lang];
-                                if (isset($_GET['q']) && $_GET['q']) {
-                                    $urlParams['q'] = $_GET['q'];
-                                }
-                                if (isset($_GET['completionYears']) && $_GET['completionYears']) {
-                                    $urlParams['completionYears'] = $_GET['completionYears'];
-                                }
-                                if (isset($_GET['photos']) && $_GET['photos']) {
-                                    $urlParams['photos'] = $_GET['photos'];
-                                }
-                                if (isset($_GET['videos']) && $_GET['videos']) {
-                                    $urlParams['videos'] = $_GET['videos'];
+                                // 現在のページが建築家ページかどうかを判定
+                                $isArchitectPage = isset($_GET['architects_slug']) && !empty($_GET['architects_slug']);
+                                
+                                if ($isArchitectPage) {
+                                    // 建築家ページの場合：既存のパラメータを保持してprefecturesパラメータを追加
+                                    $architectSlug = $_GET['architects_slug'];
+                                    $urlParams = ['prefectures' => $building['prefecturesEn']];
+                                    
+                                    // 既存のパラメータを保持
+                                    if (isset($_GET['completionYears']) && !empty($_GET['completionYears'])) {
+                                        $urlParams['completionYears'] = $_GET['completionYears'];
+                                    }
+                                    
+                                    $url = "/architects/{$architectSlug}/?" . http_build_query($urlParams);
+                                } else {
+                                    // 通常ページの場合：既存のロジックを使用
+                                    $urlParams = ['prefectures' => $building['prefecturesEn'], 'lang' => $lang];
+                                    if (isset($_GET['q']) && $_GET['q']) {
+                                        $urlParams['q'] = $_GET['q'];
+                                    }
+                                    if (isset($_GET['completionYears']) && $_GET['completionYears']) {
+                                        $urlParams['completionYears'] = $_GET['completionYears'];
+                                    }
+                                    if (isset($_GET['photos']) && $_GET['photos']) {
+                                        $urlParams['photos'] = $_GET['photos'];
+                                    }
+                                    if (isset($_GET['videos']) && $_GET['videos']) {
+                                        $urlParams['videos'] = $_GET['videos'];
+                                    }
+                                    $url = "/index.php?" . http_build_query($urlParams);
                                 }
                                 ?>
-                                <a href="/index.php?<?php echo http_build_query($urlParams); ?>" 
+                                <a href="<?php echo $url; ?>" 
                                    class="prefecture-badge text-decoration-none">
                                     <i data-lucide="map-pin" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo htmlspecialchars($lang === 'ja' ? $building['prefectures'] : $building['prefecturesEn']); ?>
@@ -176,22 +219,39 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             
                             <?php if ($building['completionYears']): ?>
                                 <?php 
-                                // 現在の検索条件を保持したURLパラメータを作成
-                                $urlParams = ['completionYears' => $building['completionYears'], 'lang' => $lang];
-                                if (isset($_GET['q']) && $_GET['q']) {
-                                    $urlParams['q'] = $_GET['q'];
-                                }
-                                if (isset($_GET['prefectures']) && $_GET['prefectures']) {
-                                    $urlParams['prefectures'] = $_GET['prefectures'];
-                                }
-                                if (isset($_GET['photos']) && $_GET['photos']) {
-                                    $urlParams['photos'] = $_GET['photos'];
-                                }
-                                if (isset($_GET['videos']) && $_GET['videos']) {
-                                    $urlParams['videos'] = $_GET['videos'];
+                                // 現在のページが建築家ページかどうかを判定
+                                $isArchitectPage = isset($_GET['architects_slug']) && !empty($_GET['architects_slug']);
+                                
+                                if ($isArchitectPage) {
+                                    // 建築家ページの場合：既存のパラメータを保持してcompletionYearsパラメータを追加
+                                    $architectSlug = $_GET['architects_slug'];
+                                    $urlParams = ['completionYears' => $building['completionYears']];
+                                    
+                                    // 既存のパラメータを保持
+                                    if (isset($_GET['prefectures']) && !empty($_GET['prefectures'])) {
+                                        $urlParams['prefectures'] = $_GET['prefectures'];
+                                    }
+                                    
+                                    $url = "/architects/{$architectSlug}/?" . http_build_query($urlParams);
+                                } else {
+                                    // 通常ページの場合：既存のロジックを使用
+                                    $urlParams = ['completionYears' => $building['completionYears'], 'lang' => $lang];
+                                    if (isset($_GET['q']) && $_GET['q']) {
+                                        $urlParams['q'] = $_GET['q'];
+                                    }
+                                    if (isset($_GET['prefectures']) && $_GET['prefectures']) {
+                                        $urlParams['prefectures'] = $_GET['prefectures'];
+                                    }
+                                    if (isset($_GET['photos']) && $_GET['photos']) {
+                                        $urlParams['photos'] = $_GET['photos'];
+                                    }
+                                    if (isset($_GET['videos']) && $_GET['videos']) {
+                                        $urlParams['videos'] = $_GET['videos'];
+                                    }
+                                    $url = "/index.php?" . http_build_query($urlParams);
                                 }
                                 ?>
-                                <a href="/index.php?<?php echo http_build_query($urlParams); ?>" 
+                                <a href="<?php echo $url; ?>" 
                                    class="completion-year-badge text-decoration-none"
                                    title="<?php echo $lang === 'ja' ? 'この建築年で検索' : 'Search by this completion year'; ?>">
                                     <i data-lucide="calendar" class="me-1" style="width: 12px; height: 12px;"></i>
