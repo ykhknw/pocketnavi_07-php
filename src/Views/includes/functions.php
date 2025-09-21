@@ -1,26 +1,12 @@
 <?php
 // 統合された共通関数ファイル
 
-/**
- * データベース接続を取得（統合版）
- */
-function getDatabaseConnection() {
-    try {
-        $host = 'localhost';
-        $dbname = '_shinkenchiku_db';
-        $username = 'root';
-        $password = '';
-        
-        $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        
-        return $pdo;
-    } catch (PDOException $e) {
-        error_log("Database connection error: " . $e->getMessage());
-        throw new Exception("データベース接続エラーが発生しました。");
-    }
-}
+// クラスファイルを読み込み
+require_once __DIR__ . '/../../Services/BuildingService.php';
+require_once __DIR__ . '/../../Services/ArchitectService.php';
+require_once __DIR__ . '/../../Utils/ErrorHandler.php';
+
+
 
 
 /**
@@ -37,160 +23,21 @@ function generateThumbnailUrl($uid, $hasPhoto) {
 }
 
 /**
- * 建築物を検索する（統合版 - 新しいロジックをベースに）
+ * 建築物を検索する（新しいクラスベース設計に移行）
  */
 function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
-    $db = getDB();
-    $offset = ($page - 1) * $limit;
-    
-    // テーブル名の定義
-    $buildings_table = 'buildings_table_3';
-    $building_architects_table = 'building_architects';
-    $architect_compositions_table = 'architect_compositions_2';
-    $individual_architects_table = 'individual_architects_3';
-    
-    // キーワードを分割（全角・半角スペースで分割）
-    $temp = str_replace('　', ' ', $query);
-    $keywords = array_filter(explode(' ', trim($temp)));
-    
-    // WHERE句の構築
-    $whereClauses = [];
-    $params = [];
-    
-    // 横断検索の処理
-    if (!empty($keywords)) {
-        // 各キーワードに対してOR条件を構築し、全体をANDで結合
-        $keywordConditions = [];
-        foreach ($keywords as $keyword) {
-            $escapedKeyword = '%' . $keyword . '%';
-            $fieldConditions = [
-                "b.title LIKE ?",
-                "b.titleEn LIKE ?",
-                "b.buildingTypes LIKE ?",
-                "b.buildingTypesEn LIKE ?",
-                "b.location LIKE ?",
-                "b.locationEn_from_datasheetChunkEn LIKE ?",
-                "ia.name_ja LIKE ?",
-                "ia.name_en LIKE ?"
-            ];
-            $keywordConditions[] = '(' . implode(' OR ', $fieldConditions) . ')';
-            
-            // パラメータを8回追加（各フィールド用）
-            for ($i = 0; $i < 8; $i++) {
-                $params[] = $escapedKeyword;
-            }
-        }
-        
-        if (!empty($keywordConditions)) {
-            $whereClauses[] = '(' . implode(' AND ', $keywordConditions) . ')';
-        }
-    }
-    
-    // メディアフィルター
-    if ($hasPhotos) {
-        $whereClauses[] = "b.has_photo IS NOT NULL AND b.has_photo != ''";
-    }
-    
-    if ($hasVideos) {
-        $whereClauses[] = "b.youtubeUrl IS NOT NULL AND b.youtubeUrl != ''";
-    }
-    
-    // WHERE句の構築
-    $whereSql = '';
-    if (!empty($whereClauses)) {
-        $whereSql = 'WHERE ' . implode(' AND ', $whereClauses);
-    }
-    
-    // カウントクエリ
-    $countSql = "
-        SELECT COUNT(DISTINCT b.building_id) as total
-        FROM $buildings_table b
-        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
-        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
-        $whereSql
-    ";
-    
-    // データ取得クエリ
-    $sql = "
-        SELECT b.building_id,
-               b.uid,
-               b.title,
-               b.titleEn,
-               b.slug,
-               b.lat,
-               b.lng,
-               b.location,
-               b.locationEn_from_datasheetChunkEn as locationEn,
-               b.completionYears,
-               b.buildingTypes,
-               b.buildingTypesEn,
-               b.prefectures,
-               b.prefecturesEn,
-               b.has_photo,
-               b.thumbnailUrl,
-               b.youtubeUrl,
-               b.created_at,
-               b.updated_at,
-               0 as likes,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_ja 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectJa,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_en 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectEn,
-               GROUP_CONCAT(
-                   DISTINCT ba.architect_id 
-                   ORDER BY ba.architect_order 
-                   SEPARATOR ','
-               ) AS architectIds,
-               GROUP_CONCAT(
-                   DISTINCT ia.slug 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ','
-               ) AS architectSlugs
-        FROM $buildings_table b
-        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
-        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
-        $whereSql
-        GROUP BY b.building_id
-        ORDER BY b.has_photo DESC, b.building_id DESC
-        LIMIT {$limit} OFFSET {$offset}
-    ";
-    
     try {
-        // カウント実行
-        $countStmt = $db->prepare($countSql);
-        $countStmt->execute($params);
-        $total = $countStmt->fetch()['total'];
-        
-        // データ取得実行
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll();
-        
-        // データ変換
-        $buildings = [];
-        foreach ($rows as $row) {
-            $buildings[] = transformBuildingData($row, $lang);
-        }
-        
-        $totalPages = ceil($total / $limit);
-        
-        return [
-            'buildings' => $buildings,
-            'total' => $total,
-            'totalPages' => $totalPages,
-            'currentPage' => $page
-        ];
-        
+        $buildingService = new BuildingService();
+        return $buildingService->search($query, $page, $hasPhotos, $hasVideos, $lang, $limit);
     } catch (Exception $e) {
-        error_log("Search error: " . $e->getMessage());
+        ErrorHandler::log("Search error: " . $e->getMessage(), ErrorHandler::LOG_LEVEL_ERROR, [
+            'query' => $query,
+            'page' => $page,
+            'hasPhotos' => $hasPhotos,
+            'hasVideos' => $hasVideos,
+            'lang' => $lang,
+            'limit' => $limit
+        ]);
         return [
             'buildings' => [],
             'total' => 0,
@@ -201,182 +48,30 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
 }
 
 /**
- * 複数条件での建築物検索
+ * 複数条件での建築物検索（新しいクラスベース設計に移行）
  */
 function searchBuildingsWithMultipleConditions($query, $completionYears, $prefectures, $buildingTypes, $hasPhotos, $hasVideos, $page = 1, $lang = 'ja', $limit = 10) {
-    $db = getDB();
-    $page = (int)$page;
-    $limit = (int)$limit;
-    $offset = ($page - 1) * $limit;
-    
-    // テーブル名の定義
-    $buildings_table = 'buildings_table_3';
-    $building_architects_table = 'building_architects';
-    $architect_compositions_table = 'architect_compositions_2';
-    $individual_architects_table = 'individual_architects_3';
-    
-    // WHERE句の構築
-    $whereClauses = [];
-    $params = [];
-    
-    // キーワード検索
-    if (!empty($query)) {
-        $temp = str_replace('　', ' ', $query);
-        $keywords = array_filter(explode(' ', trim($temp)));
-        
-        if (!empty($keywords)) {
-            $keywordConditions = [];
-            foreach ($keywords as $keyword) {
-                $escapedKeyword = '%' . $keyword . '%';
-                $fieldConditions = [
-                    "b.title LIKE ?",
-                    "b.titleEn LIKE ?",
-                    "b.buildingTypes LIKE ?",
-                    "b.buildingTypesEn LIKE ?",
-                    "b.location LIKE ?",
-                    "b.locationEn_from_datasheetChunkEn LIKE ?",
-                    "ia.name_ja LIKE ?",
-                    "ia.name_en LIKE ?"
-                ];
-                $keywordConditions[] = '(' . implode(' OR ', $fieldConditions) . ')';
-                
-                for ($i = 0; $i < 8; $i++) {
-                    $params[] = $escapedKeyword;
-                }
-            }
-            
-            if (!empty($keywordConditions)) {
-                $whereClauses[] = '(' . implode(' AND ', $keywordConditions) . ')';
-            }
-        }
-    }
-    // 空の検索条件の場合は全件取得（WHERE句を追加しない）
-    
-    // 完成年フィルター
-    if (!empty($completionYears)) {
-        $whereClauses[] = "b.completionYears = ?";
-        $params[] = $completionYears;
-    }
-    
-    // 都道府県フィルター
-    if (!empty($prefectures)) {
-        $whereClauses[] = "(b.prefectures LIKE ? OR b.prefecturesEn LIKE ?)";
-        $params[] = '%' . $prefectures . '%';
-        $params[] = '%' . $prefectures . '%';
-    }
-    
-    // 建物用途フィルター
-    if (!empty($buildingTypes)) {
-        $whereClauses[] = "(b.buildingTypes LIKE ? OR b.buildingTypesEn LIKE ?)";
-        $params[] = '%' . $buildingTypes . '%';
-        $params[] = '%' . $buildingTypes . '%';
-    }
-    
-    // メディアフィルター
-    if ($hasPhotos === true || $hasPhotos === '1' || $hasPhotos === 1) {
-        $whereClauses[] = "b.has_photo IS NOT NULL AND b.has_photo != ''";
-    }
-    
-    if ($hasVideos === true || $hasVideos === '1' || $hasVideos === 1) {
-        $whereClauses[] = "b.youtubeUrl IS NOT NULL AND b.youtubeUrl != ''";
-    }
-    
-    // WHERE句の構築
-    $whereSql = '';
-    if (!empty($whereClauses)) {
-        $whereSql = 'WHERE ' . implode(' AND ', $whereClauses);
-    }
-    
-    // カウントクエリ
-    $countSql = "
-        SELECT COUNT(DISTINCT b.building_id) as total
-        FROM $buildings_table b
-        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
-        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
-        $whereSql
-    ";
-    
-    // データ取得クエリ
-    $sql = "
-        SELECT b.building_id,
-               b.uid,
-               b.title,
-               b.titleEn,
-               b.slug,
-               b.lat,
-               b.lng,
-               b.location,
-               b.locationEn_from_datasheetChunkEn as locationEn,
-               b.completionYears,
-               b.buildingTypes,
-               b.buildingTypesEn,
-               b.prefectures,
-               b.prefecturesEn,
-               b.has_photo,
-               b.thumbnailUrl,
-               b.youtubeUrl,
-               b.created_at,
-               b.updated_at,
-               0 as likes,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_ja 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectJa,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_en 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectEn,
-               GROUP_CONCAT(
-                   DISTINCT ba.architect_id 
-                   ORDER BY ba.architect_order 
-                   SEPARATOR ','
-               ) AS architectIds,
-               GROUP_CONCAT(
-                   DISTINCT ia.slug 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ','
-               ) AS architectSlugs
-        FROM $buildings_table b
-        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
-        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
-        $whereSql
-        GROUP BY b.building_id
-        ORDER BY b.has_photo DESC, b.building_id DESC
-        LIMIT {$limit} OFFSET {$offset}
-    ";
-    
     try {
-        // カウント実行
-        $countStmt = $db->prepare($countSql);
-        $countStmt->execute($params);
-        $total = $countStmt->fetch()['total'];
+        $buildingService = new BuildingService();
         
-        // データ取得実行
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll();
+        // 配列に変換（文字列の場合は配列に分割）
+        $completionYearsArray = is_array($completionYears) ? $completionYears : (!empty($completionYears) ? [$completionYears] : []);
+        $prefecturesArray = is_array($prefectures) ? $prefectures : (!empty($prefectures) ? [$prefectures] : []);
+        $buildingTypesArray = is_array($buildingTypes) ? $buildingTypes : (!empty($buildingTypes) ? [$buildingTypes] : []);
         
-        // データ変換
-        $buildings = [];
-        foreach ($rows as $row) {
-            $buildings[] = transformBuildingData($row, $lang);
-        }
-        
-        $totalPages = ceil($total / $limit);
-        
-        return [
-            'buildings' => $buildings,
-            'total' => $total,
-            'totalPages' => $totalPages,
-            'currentPage' => $page
-        ];
-        
+        return $buildingService->searchWithMultipleConditions($query, $completionYearsArray, $prefecturesArray, $buildingTypesArray, $hasPhotos, $hasVideos, $page, $lang, $limit);
     } catch (Exception $e) {
-        error_log("Multiple conditions search error: " . $e->getMessage());
+        ErrorHandler::log("Multiple conditions search error: " . $e->getMessage(), ErrorHandler::LOG_LEVEL_ERROR, [
+            'query' => $query,
+            'completionYears' => $completionYears,
+            'prefectures' => $prefectures,
+            'buildingTypes' => $buildingTypes,
+            'hasPhotos' => $hasPhotos,
+            'hasVideos' => $hasVideos,
+            'page' => $page,
+            'lang' => $lang,
+            'limit' => $limit
+        ]);
         return [
             'buildings' => [],
             'total' => 0,
@@ -387,152 +82,23 @@ function searchBuildingsWithMultipleConditions($query, $completionYears, $prefec
 }
 
 /**
- * 現在地検索用の関数
+ * 現在地検索用の関数（新しいクラスベース設計に移行）
  */
 function searchBuildingsByLocation($userLat, $userLng, $radiusKm = 5, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
-    $db = getDB();
-    $page = (int)$page;
-    $limit = (int)$limit;
-    $offset = ($page - 1) * $limit;
-    
-    // テーブル名の定義
-    $buildings_table = 'buildings_table_3';
-    $building_architects_table = 'building_architects';
-    $architect_compositions_table = 'architect_compositions_2';
-    $individual_architects_table = 'individual_architects_3';
-    
-    // WHERE句の構築
-    $whereClauses = [];
-    $params = [];
-    
-    // 位置情報による検索（Haversine公式を使用）
-    $whereClauses[] = "(6371 * ACOS(COS(RADIANS(?)) * COS(RADIANS(b.lat)) * COS(RADIANS(b.lng) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(b.lat)))) < ?";
-    $params[] = $userLat;
-    $params[] = $userLng;
-    $params[] = $userLat;
-    $params[] = $radiusKm;
-    
-    // 座標が有効なデータのみ
-    $whereClauses[] = "b.lat IS NOT NULL AND b.lng IS NOT NULL AND b.lat != 0 AND b.lng != 0";
-    
-    // locationカラムが空でないもののみ
-    $whereClauses[] = "b.location IS NOT NULL AND b.location != ''";
-    
-    // 写真フィルター
-    if ($hasPhotos) {
-        $whereClauses[] = "b.has_photo IS NOT NULL AND b.has_photo != ''";
-    }
-    
-    if ($hasVideos) {
-        $whereClauses[] = "b.youtubeUrl IS NOT NULL AND b.youtubeUrl != ''";
-    }
-    
-    // WHERE句の構築
-    $whereSql = 'WHERE ' . implode(' AND ', $whereClauses);
-    
-    // カウントクエリ
-    $countSql = "
-        SELECT COUNT(DISTINCT b.building_id) as total
-        FROM $buildings_table b
-        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
-        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
-        $whereSql
-    ";
-    
-    // データ取得クエリ
-    $sql = "
-        SELECT b.building_id,
-               b.uid,
-               b.title,
-               b.titleEn,
-               b.slug,
-               b.lat,
-               b.lng,
-               b.location,
-               b.locationEn_from_datasheetChunkEn as locationEn,
-               b.completionYears,
-               b.buildingTypes,
-               b.buildingTypesEn,
-               b.prefectures,
-               b.prefecturesEn,
-               b.has_photo,
-               b.thumbnailUrl,
-               b.youtubeUrl,
-               b.created_at,
-               b.updated_at,
-               0 as likes,
-               (6371 * ACOS(COS(RADIANS({$userLat})) * COS(RADIANS(b.lat)) * COS(RADIANS(b.lng) - RADIANS({$userLng})) + SIN(RADIANS({$userLat})) * SIN(RADIANS(b.lat)))) as distance,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_ja 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectJa,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_en 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectEn,
-               GROUP_CONCAT(
-                   DISTINCT ba.architect_id 
-                   ORDER BY ba.architect_order 
-                   SEPARATOR ','
-               ) AS architectIds,
-               GROUP_CONCAT(
-                   DISTINCT ia.slug 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ','
-               ) AS architectSlugs
-        FROM $buildings_table b
-        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
-        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
-        $whereSql
-        GROUP BY b.building_id
-        ORDER BY distance ASC
-        LIMIT {$limit} OFFSET {$offset}
-    ";
-    
     try {
-        // カウント実行
-        $countStmt = $db->prepare($countSql);
-        $countStmt->execute($params);
-        $total = $countStmt->fetch()['total'];
-        
-        // データ取得実行（距離計算用のパラメータは不要）
-        $stmt = $db->prepare($sql);
-        $stmt->execute($params);
-        
-        // デバッグログ
-        error_log("searchBuildingsByLocation - params: " . print_r($params, true));
-        $rows = $stmt->fetchAll();
-        
-        // デバッグログ
-        error_log("searchBuildingsByLocation - rows count: " . count($rows));
-        
-        // SQLエラーをチェック
-        if ($stmt->errorCode() !== '00000') {
-            $errorInfo = $stmt->errorInfo();
-            error_log("searchBuildingsByLocation - SQL error: " . print_r($errorInfo, true));
-        }
-        
-        // データ変換
-        $buildings = [];
-        foreach ($rows as $row) {
-            $buildings[] = transformBuildingData($row, $lang);
-        }
-        
-        $totalPages = ceil($total / $limit);
-        
-        return [
-            'buildings' => $buildings,
-            'total' => $total,
-            'totalPages' => $totalPages,
-            'currentPage' => $page
-        ];
-        
+        $buildingService = new BuildingService();
+        return $buildingService->searchByLocation($userLat, $userLng, $radiusKm, $page, $hasPhotos, $hasVideos, $lang, $limit);
     } catch (Exception $e) {
-        error_log("Location search error: " . $e->getMessage());
+        ErrorHandler::log("Location search error: " . $e->getMessage(), ErrorHandler::LOG_LEVEL_ERROR, [
+            'userLat' => $userLat,
+            'userLng' => $userLng,
+            'radiusKm' => $radiusKm,
+            'page' => $page,
+            'hasPhotos' => $hasPhotos,
+            'hasVideos' => $hasVideos,
+            'lang' => $lang,
+            'limit' => $limit
+        ]);
         return [
             'buildings' => [],
             'total' => 0,
@@ -587,7 +153,7 @@ function transformBuildingData($row, $lang = 'ja') {
     }
     
     return [
-        'building_id' => intval($row['building_id']),
+        'building_id' => intval($row['building_id'] ?? 0),
         'uid' => $row['uid'] ?? '',
         'title' => $row['title'] ?? '',
         'titleEn' => $titleEn,
@@ -613,193 +179,43 @@ function transformBuildingData($row, $lang = 'ja') {
 }
 
 /**
- * スラッグで建築物を取得
+ * スラッグで建築物を取得（新しいクラスベース設計に移行）
  */
 function getBuildingBySlug($slug, $lang = 'ja') {
-    $db = getDB();
-    
-    $buildings_table = 'buildings_table_3';
-    $building_architects_table = 'building_architects';
-    $architect_compositions_table = 'architect_compositions_2';
-    $individual_architects_table = 'individual_architects_3';
-    
-    $sql = "
-        SELECT b.building_id,
-               b.uid,
-               b.title,
-               b.titleEn,
-               b.slug,
-               b.lat,
-               b.lng,
-               b.location,
-               b.locationEn_from_datasheetChunkEn as locationEn,
-               b.completionYears,
-               b.buildingTypes,
-               b.buildingTypesEn,
-               b.prefectures,
-               b.prefecturesEn,
-               b.has_photo,
-               b.thumbnailUrl,
-               b.youtubeUrl,
-               b.created_at,
-               b.updated_at,
-               0 as likes,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_ja 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectJa,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_en 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectEn,
-               GROUP_CONCAT(
-                   DISTINCT ba.architect_id 
-                   ORDER BY ba.architect_order 
-                   SEPARATOR ','
-               ) AS architectIds,
-               GROUP_CONCAT(
-                   DISTINCT ia.slug 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ','
-               ) AS architectSlugs
-        FROM $buildings_table b
-        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
-        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
-        WHERE b.slug = :slug
-        GROUP BY b.building_id
-        LIMIT 1
-    ";
-    
     try {
-        $stmt = $db->prepare($sql);
-        $stmt->bindValue(':slug', $slug);
-        $stmt->execute();
-        $row = $stmt->fetch();
-        
-        if ($row) {
-            return transformBuildingData($row, $lang);
-        }
-        
-        return null;
+        $buildingService = new BuildingService();
+        return $buildingService->getBySlug($slug, $lang);
     } catch (Exception $e) {
-        error_log("Get building by slug error: " . $e->getMessage());
+        ErrorHandler::log("Get building by slug error: " . $e->getMessage(), ErrorHandler::LOG_LEVEL_ERROR, [
+            'slug' => $slug,
+            'lang' => $lang
+        ]);
         return null;
     }
 }
 
 /**
- * 建築家のスラッグで建築物を検索
+ * 建築家のスラッグで建築物を検索（新しいクラスベース設計に移行）
  */
 function searchBuildingsByArchitectSlug($architectSlug, $page = 1, $lang = 'ja', $limit = 10) {
-    $db = getDB();
-    $page = (int)$page;
-    $limit = (int)$limit;
-    $offset = ($page - 1) * $limit;
-    
-    // テーブル名の定義
-    $buildings_table = 'buildings_table_3';
-    $building_architects_table = 'building_architects';
-    $architect_compositions_table = 'architect_compositions_2';
-    $individual_architects_table = 'individual_architects_3';
-    
-    $sql = "
-        SELECT b.building_id,
-               b.uid,
-               b.title,
-               b.titleEn,
-               b.slug,
-               b.lat,
-               b.lng,
-               b.location,
-               b.locationEn_from_datasheetChunkEn as locationEn,
-               b.completionYears,
-               b.buildingTypes,
-               b.buildingTypesEn,
-               b.prefectures,
-               b.prefecturesEn,
-               b.has_photo,
-               b.thumbnailUrl,
-               b.youtubeUrl,
-               b.created_at,
-               b.updated_at,
-               0 as likes,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_ja 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectJa,
-               GROUP_CONCAT(
-                   DISTINCT ia.name_en 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ' / '
-               ) AS architectEn,
-               GROUP_CONCAT(
-                   DISTINCT ba.architect_id 
-                   ORDER BY ba.architect_order 
-                   SEPARATOR ','
-               ) AS architectIds,
-               GROUP_CONCAT(
-                   DISTINCT ia.slug 
-                   ORDER BY ba.architect_order, ac.order_index 
-                   SEPARATOR ','
-               ) AS architectSlugs
-        FROM $buildings_table b
-        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
-        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
-        WHERE ia.slug = :architect_slug
-        GROUP BY b.building_id
-        ORDER BY b.has_photo DESC, b.building_id DESC
-        LIMIT {$limit} OFFSET {$offset}
-    ";
-    
-    // カウントクエリ
-    $countSql = "
-        SELECT COUNT(DISTINCT b.building_id) as total
-        FROM $buildings_table b
-        LEFT JOIN $building_architects_table ba ON b.building_id = ba.building_id
-        LEFT JOIN $architect_compositions_table ac ON ba.architect_id = ac.architect_id
-        LEFT JOIN $individual_architects_table ia ON ac.individual_architect_id = ia.individual_architect_id
-        WHERE ia.slug = :architect_slug
-    ";
-    
     try {
-        // カウント実行
-        $countStmt = $db->prepare($countSql);
-        $countStmt->bindValue(':architect_slug', $architectSlug);
-        $countStmt->execute();
-        $total = $countStmt->fetch()['total'];
+        $buildingService = new BuildingService();
+        $result = $buildingService->searchByArchitectSlug($architectSlug, $page, $lang, $limit);
         
-        // データ取得実行
-        $stmt = $db->prepare($sql);
-        $stmt->bindValue(':architect_slug', $architectSlug);
-        $stmt->execute();
-        $rows = $stmt->fetchAll();
+        // 建築家情報を取得して追加
+        $architectService = new ArchitectService();
+        $architectInfo = $architectService->getBySlug($architectSlug, $lang);
         
-        // データ変換
-        $buildings = [];
-        foreach ($rows as $row) {
-            $buildings[] = transformBuildingData($row, $lang);
-        }
+        $result['architectInfo'] = $architectInfo;
         
-        $totalPages = ceil($total / $limit);
-        
-        // 建築家情報を取得
-        $architectInfo = getArchitectBySlug($architectSlug, $lang);
-        
-        return [
-            'buildings' => $buildings,
-            'total' => $total,
-            'totalPages' => $totalPages,
-            'currentPage' => $page,
-            'architectInfo' => $architectInfo
-        ];
-        
+        return $result;
     } catch (Exception $e) {
-        error_log("Search buildings by architect slug error: " . $e->getMessage());
+        ErrorHandler::log("Architect search error: " . $e->getMessage(), ErrorHandler::LOG_LEVEL_ERROR, [
+            'architectSlug' => $architectSlug,
+            'page' => $page,
+            'lang' => $lang,
+            'limit' => $limit
+        ]);
         return [
             'buildings' => [],
             'total' => 0,
@@ -811,54 +227,40 @@ function searchBuildingsByArchitectSlug($architectSlug, $page = 1, $lang = 'ja',
 }
 
 /**
- * スラッグで建築家を取得
+ * スラッグで建築家を取得（新しいクラスベース設計に移行）
  */
 function getArchitectBySlug($slug, $lang = 'ja') {
-    $db = getDB();
-    
-    $individual_architects_table = 'individual_architects_3';
-    
-    $sql = "
-        SELECT individual_architect_id, name_ja, name_en, individual_website, website_title
-        FROM $individual_architects_table 
-        WHERE slug = :slug
-        LIMIT 1
-    ";
-    
     try {
-        $stmt = $db->prepare($sql);
-        $stmt->bindValue(':slug', $slug);
-        $stmt->execute();
-        $row = $stmt->fetch();
-        
-        if ($row) {
-            return [
-                'individual_architect_id' => intval($row['individual_architect_id']),
-                'name_ja' => $row['name_ja'] ?? '',
-                'name_en' => $row['name_en'] ?? '',
-                'individual_website' => $row['individual_website'] ?? '',
-                'website_title' => $row['website_title'] ?? ''
-            ];
-        }
-        
-        return null;
+        $architectService = new ArchitectService();
+        return $architectService->getBySlug($slug, $lang);
     } catch (Exception $e) {
-        error_log("Get architect by slug error: " . $e->getMessage());
+        ErrorHandler::log("Get architect by slug error: " . $e->getMessage(), ErrorHandler::LOG_LEVEL_ERROR, [
+            'slug' => $slug,
+            'lang' => $lang
+        ]);
         return null;
     }
 }
 
 /**
- * 人気検索を取得
+ * 人気検索を取得（新しいクラスベース設計に移行）
  */
 function getPopularSearches($lang = 'ja') {
-    // 固定の人気検索（実際のアプリでは検索ログから取得）
-    return [
-        ['query' => '安藤忠雄', 'count' => 45],
-        ['query' => '美術館', 'count' => 38],
-        ['query' => '東京', 'count' => 32],
-        ['query' => '現代建築', 'count' => 28]
-    ];
+    try {
+        $architectService = new ArchitectService();
+        return $architectService->getPopularSearches($lang);
+    } catch (Exception $e) {
+        ErrorHandler::log("Get popular searches error: " . $e->getMessage(), ErrorHandler::LOG_LEVEL_ERROR, [
+            'lang' => $lang
+        ]);
+        // フォールバック用の固定データ
+        return [
+            ['query' => '安藤忠雄', 'count' => 45],
+            ['query' => '美術館', 'count' => 38],
+            ['query' => '東京', 'count' => 32],
+            ['query' => '現代建築', 'count' => 28]
+        ];
+    }
 }
 
 /**
@@ -1000,4 +402,114 @@ function debugDatabase() {
         return null;
     }
 }
+
+// ============================================================================
+// 新しいクラスベースの設計を利用するラッパー関数
+// ============================================================================
+
+/**
+ * 建築物検索（新しいクラスベース設計）
+ */
+function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
+    try {
+        $buildingService = new BuildingService();
+        return $buildingService->search($query, $page, $hasPhotos, $hasVideos, $lang, $limit);
+    } catch (Exception $e) {
+        return ErrorHandler::handleSearchError($e, $query);
+    }
+}
+
+/**
+ * 複数条件での建築物検索（新しいクラスベース設計）
+ */
+function searchBuildingsWithMultipleConditionsNew($query, $completionYears, $prefectures, $buildingTypes, $hasPhotos, $hasVideos, $page = 1, $lang = 'ja', $limit = 10) {
+    try {
+        $buildingService = new BuildingService();
+        return $buildingService->searchWithMultipleConditions($query, $completionYears, $prefectures, $buildingTypes, $hasPhotos, $hasVideos, $page, $lang, $limit);
+    } catch (Exception $e) {
+        return ErrorHandler::handleSearchError($e, $query);
+    }
+}
+
+/**
+ * 位置情報による建築物検索（新しいクラスベース設計）
+ */
+function searchBuildingsByLocationNew($userLat, $userLng, $radiusKm = 5, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
+    try {
+        $buildingService = new BuildingService();
+        return $buildingService->searchByLocation($userLat, $userLng, $radiusKm, $page, $hasPhotos, $hasVideos, $lang, $limit);
+    } catch (Exception $e) {
+        return ErrorHandler::handleSearchError($e, "Location: {$userLat}, {$userLng}");
+    }
+}
+
+/**
+ * 建築家による建築物検索（新しいクラスベース設計）
+ */
+function searchBuildingsByArchitectSlugNew($architectSlug, $page = 1, $lang = 'ja', $limit = 10) {
+    try {
+        $buildingService = new BuildingService();
+        return $buildingService->searchByArchitectSlug($architectSlug, $page, $lang, $limit);
+    } catch (Exception $e) {
+        return ErrorHandler::handleSearchError($e, "Architect: {$architectSlug}");
+    }
+}
+
+/**
+ * スラッグで建築物を取得（新しいクラスベース設計）
+ */
+function getBuildingBySlugNew($slug, $lang = 'ja') {
+    try {
+        $buildingService = new BuildingService();
+        return $buildingService->getBySlug($slug, $lang);
+    } catch (Exception $e) {
+        return ErrorHandler::handleSearchError($e, "Building: {$slug}");
+    }
+}
+
+/**
+ * スラッグで建築家を取得（新しいクラスベース設計）
+ */
+function getArchitectBySlugNew($slug, $lang = 'ja') {
+    try {
+        $architectService = new ArchitectService();
+        return $architectService->getBySlug($slug, $lang);
+    } catch (Exception $e) {
+        return ErrorHandler::handleSearchError($e, "Architect: {$slug}");
+    }
+}
+
+/**
+ * 建築家の建築物一覧を取得（新しいクラスベース設計）
+ */
+function getArchitectBuildingsNew($architectId, $page = 1, $lang = 'ja', $limit = 10) {
+    try {
+        $architectService = new ArchitectService();
+        return $architectService->getBuildings($architectId, $page, $lang, $limit);
+    } catch (Exception $e) {
+        return ErrorHandler::handleSearchError($e, "Architect ID: {$architectId}");
+    }
+}
+
+/**
+ * 人気検索語を取得（新しいクラスベース設計）
+ */
+function getPopularSearchesNew($lang = 'ja') {
+    try {
+        $architectService = new ArchitectService();
+        return $architectService->getPopularSearches($lang);
+    } catch (Exception $e) {
+        return ErrorHandler::handleSearchError($e, "Popular searches");
+    }
+}
+
+// ============================================================================
+// 段階的移行のための関数エイリアス
+// ============================================================================
+
+// 既存の関数名を新しい実装にリダイレクト（段階的移行用）
+// 注意: 本格的な移行時は、既存の関数を削除して新しい関数名に統一する
+
+// 例: function searchBuildings() { return searchBuildingsNew(...); }
+// ただし、既存の関数が既に存在するため、この段階では新しい関数名を使用
 ?>

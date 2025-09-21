@@ -63,6 +63,12 @@ if ($buildingSlug) {
     $totalPages = $searchResult['totalPages'];
     $currentPage = $searchResult['currentPage'];
     $architectInfo = $searchResult['architectInfo'];
+    
+    // デバッグ情報（開発時のみ）
+    if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+        error_log("Debug - architectsSlug: " . $architectsSlug);
+        error_log("Debug - architectInfo: " . print_r($architectInfo, true));
+    }
 } elseif ($userLat !== null && $userLng !== null) {
     // 現在地検索
     $searchResult = searchBuildingsByLocation($userLat, $userLng, $radiusKm, $page, $hasPhotos, $hasVideos, $lang, $limit);
@@ -171,15 +177,15 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <h2 class="h4 mb-2">
                                 <i data-lucide="circle-user-round" class="me-2" style="width: 20px; height: 20px;"></i>
                                 <?php echo $lang === 'ja' ? '建築家' : 'Architect'; ?>: 
-                                <span class="text-primary"><?php echo htmlspecialchars($lang === 'ja' ? ($architectInfo['name_ja'] ?? $architectInfo['name_en'] ?? '') : ($architectInfo['name_en'] ?? $architectInfo['name_ja'] ?? '')); ?></span>
+                                <span class="text-primary"><?php echo htmlspecialchars($lang === 'ja' ? ($architectInfo['nameJa'] ?? $architectInfo['nameEn'] ?? '') : ($architectInfo['nameEn'] ?? $architectInfo['nameJa'] ?? '')); ?></span>
                             </h2>
-                            <?php if ($lang === 'ja' && !empty($architectInfo['name_en']) && $architectInfo['name_ja'] !== $architectInfo['name_en']): ?>
+                            <?php if ($lang === 'ja' && !empty($architectInfo['nameEn']) && $architectInfo['nameJa'] !== $architectInfo['nameEn']): ?>
                                 <p class="text-muted mb-0">
-                                    <?php echo htmlspecialchars($architectInfo['name_en']); ?>
+                                    <?php echo htmlspecialchars($architectInfo['nameEn']); ?>
                                 </p>
-                            <?php elseif ($lang === 'en' && !empty($architectInfo['name_ja']) && $architectInfo['name_ja'] !== $architectInfo['name_en']): ?>
+                            <?php elseif ($lang === 'en' && !empty($architectInfo['nameJa']) && $architectInfo['nameJa'] !== $architectInfo['nameEn']): ?>
                                 <p class="text-muted mb-0">
-                                    <?php echo htmlspecialchars($architectInfo['name_ja']); ?>
+                                    <?php echo htmlspecialchars($architectInfo['nameJa']); ?>
                                 </p>
                             <?php endif; ?>
                         </div>
@@ -335,9 +341,16 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                     $architectName = '';
                                     if (isset($architectInfo) && $architectInfo) {
                                         $architectName = $lang === 'ja' ? 
-                                            ($architectInfo['name_ja'] ?? $architectInfo['name_en'] ?? '') : 
-                                            ($architectInfo['name_en'] ?? $architectInfo['name_ja'] ?? '');
+                                            ($architectInfo['nameJa'] ?? $architectInfo['nameEn'] ?? '') : 
+                                            ($architectInfo['nameEn'] ?? $architectInfo['nameJa'] ?? '');
                                     }
+                                    
+                                    // デバッグ情報（開発時のみ）
+                                    if (isset($_GET['debug']) && $_GET['debug'] === '1') {
+                                        echo "<!-- Debug: architectInfo = " . print_r($architectInfo, true) . " -->";
+                                        echo "<!-- Debug: architectName = '" . $architectName . "' -->";
+                                    }
+                                    
                                     echo htmlspecialchars($architectName); 
                                     ?>
                                     <a href="/index.php?<?php echo http_build_query(array_merge($_GET, ['architects_slug' => null])); ?>" 
