@@ -116,20 +116,17 @@ function getCurrentLocation() {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
                 
-                // 現在地検索のURLにリダイレクト
-                const currentUrl = new URL(window.location);
-                
-                // 現在地検索以外のパラメータを削除（langは保持）
-                const lang = currentUrl.searchParams.get('lang') || 'ja';
-                currentUrl.search = ''; // 全てのパラメータをクリア
+                // 現在地検索のURLにリダイレクト（ルートディレクトリから）
+                const lang = new URLSearchParams(window.location.search).get('lang') || 'ja';
+                const rootUrl = new URL('/', window.location.origin);
                 
                 // 現在地検索用のパラメータを設定
-                currentUrl.searchParams.set('lang', lang);
-                currentUrl.searchParams.set('lat', lat);
-                currentUrl.searchParams.set('lng', lng);
-                currentUrl.searchParams.set('radius', '5'); // デフォルト5km
+                rootUrl.searchParams.set('lang', lang);
+                rootUrl.searchParams.set('lat', lat);
+                rootUrl.searchParams.set('lng', lng);
+                rootUrl.searchParams.set('radius', '5'); // デフォルト5km
                 
-                window.location.href = currentUrl.toString();
+                window.location.href = rootUrl.toString();
             },
             function(error) {
                 const errorMessage = lang === 'ja' 
@@ -198,19 +195,17 @@ function openPhoto(url) {
 
 // 付近を検索
 function searchNearby(lat, lng) {
-    const currentUrl = new URL(window.location);
-    
-    // 現在地検索以外のパラメータを削除（langは保持）
-    const lang = currentUrl.searchParams.get('lang') || 'ja';
-    currentUrl.search = ''; // 全てのパラメータをクリア
+    // ルートディレクトリから付近検索
+    const lang = new URLSearchParams(window.location.search).get('lang') || 'ja';
+    const rootUrl = new URL('/', window.location.origin);
     
     // 付近検索用のパラメータを設定
-    currentUrl.searchParams.set('lang', lang);
-    currentUrl.searchParams.set('lat', lat);
-    currentUrl.searchParams.set('lng', lng);
-    currentUrl.searchParams.set('radius', '5'); // デフォルト5km
+    rootUrl.searchParams.set('lang', lang);
+    rootUrl.searchParams.set('lat', lat);
+    rootUrl.searchParams.set('lng', lng);
+    rootUrl.searchParams.set('radius', '5'); // デフォルト5km
     
-    window.location.href = currentUrl.toString();
+    window.location.href = rootUrl.toString();
 }
 
 // 経路を検索

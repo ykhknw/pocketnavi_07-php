@@ -1,21 +1,11 @@
 <?php
-// データベース設定
-require_once 'environment.php';
-
+// HETEML用データベース設定
 class Database {
-    private $host;
-    private $db_name;
-    private $username;
-    private $password;
+    private $host = 'localhost';
+    private $db_name = '_shinkenchiku_02';
+    private $username = 'root';
+    private $password = '';
     private $conn;
-    
-    public function __construct() {
-        $config = getDatabaseConfig();
-        $this->host = $config['host'];
-        $this->db_name = $config['db_name'];
-        $this->username = $config['username'];
-        $this->password = $config['password'];
-    }
     
     public function getConnection() {
         $this->conn = null;
@@ -48,5 +38,26 @@ function getDB() {
     }
     return $db;
 }
-?>
 
+// PDO接続の取得（functions_new.php用）
+function getDatabaseConnection() {
+    static $pdo = null;
+    if ($pdo === null) {
+        try {
+            $pdo = new PDO(
+                "mysql:host=localhost;dbname=_shinkenchiku_02;charset=utf8mb4",
+                'root',
+                '',
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false
+                ]
+            );
+        } catch(PDOException $e) {
+            die("Database connection failed: " . $e->getMessage());
+        }
+    }
+    return $pdo;
+}
+?>

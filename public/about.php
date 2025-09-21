@@ -1,8 +1,7 @@
 <?php
 // PocketNavi - About Page
-require_once 'config/database.php';
-require_once 'includes/functions.php';
-require_once 'includes/functions_new.php';
+require_once '../config/database.php';
+require_once '../src/Views/includes/functions.php';
 
 // 言語設定（URLクエリパラメータから取得）
 $lang = isset($_GET['lang']) && in_array($_GET['lang'], ['ja', 'en']) ? $_GET['lang'] : 'ja';
@@ -23,7 +22,7 @@ $pageTitle = $lang === 'ja' ? 'このサイトについて' : 'About This Site';
 </head>
 <body>
     <!-- Header -->
-    <?php include 'includes/header.php'; ?>
+    <?php include '../src/Views/includes/header.php'; ?>
     
     <div class="container-fluid">
         <div class="row">
@@ -105,7 +104,7 @@ $pageTitle = $lang === 'ja' ? 'このサイトについて' : 'About This Site';
     </div>
     
     <!-- Footer -->
-    <?php include 'includes/footer.php'; ?>
+    <?php include '../src/Views/includes/footer.php'; ?>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
