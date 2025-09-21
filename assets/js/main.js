@@ -316,17 +316,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // カードのクリックイベント
-    buildingCards.forEach(card => {
-        card.addEventListener('click', function(e) {
-            if (!e.target.closest('a') && !e.target.closest('button')) {
-                const link = this.querySelector('.card-title a');
-                if (link) {
-                    window.location.href = link.href;
+    // カードのクリックイベント（buildingのslugを持つページでは無効）
+    const isBuildingPage = window.location.pathname.includes('/buildings/') && window.location.pathname.split('/').length > 2;
+    
+    if (!isBuildingPage) {
+        buildingCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (!e.target.closest('a') && !e.target.closest('button')) {
+                    const link = this.querySelector('.card-title a');
+                    if (link) {
+                        window.location.href = link.href;
+                    }
                 }
-            }
+            });
         });
-    });
+    }
 });
 
 // パルスアニメーションのCSS追加

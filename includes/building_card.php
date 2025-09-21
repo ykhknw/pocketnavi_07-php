@@ -47,7 +47,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                         <?php echo isset($globalIndex) ? $globalIndex : ($index + 1); ?>
                     </div>
                     <h5 class="card-title mb-0 flex-grow-1">
-                        <a href="/buildings/<?php echo urlencode($building['slug']); ?>" 
+                        <a href="/buildings/<?php echo urlencode($building['slug']); ?>?lang=<?php echo $lang; ?>" 
                            class="text-decoration-none text-dark">
                             <?php echo htmlspecialchars($lang === 'ja' ? $building['title'] : $building['titleEn']); ?>
                         </a>
@@ -79,7 +79,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                             $urlParams['videos'] = $_GET['videos'];
                                         }
                                         ?>
-                                        <a href="/architects/<?php echo urlencode($architect['slug']); ?>/" 
+                                        <a href="/architects/<?php echo urlencode($architect['slug']); ?>/?lang=<?php echo $lang; ?>" 
                                            class="architect-badge text-decoration-none">
                                             <i data-lucide="circle-user-round" class="me-1" style="width: 12px; height: 12px;"></i>
                                             <?php echo htmlspecialchars($lang === 'ja' ? $architect['architectJa'] : $architect['architectEn']); ?>
@@ -285,7 +285,8 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <?php if (!empty($building['thumbnailUrl'])): ?>
                     <button type="button" 
                             class="btn btn-outline-success btn-sm"
-                            onclick="openPhoto('<?php echo htmlspecialchars($building['thumbnailUrl']); ?>')">
+                            onclick="openPhoto('<?php echo htmlspecialchars($building['thumbnailUrl']); ?>')"
+                            title="<?php echo $lang === 'ja' ? '写真を見る' : 'View Photos'; ?>">
                         <i data-lucide="image" style="width: 16px; height: 16px;"></i>
                     </button>
                 <?php endif; ?>
@@ -293,14 +294,16 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                 <?php if ($building['youtubeUrl']): ?>
                     <button type="button" 
                             class="btn btn-outline-danger btn-sm"
-                            onclick="openVideo('<?php echo htmlspecialchars($building['youtubeUrl']); ?>')">
+                            onclick="openVideo('<?php echo htmlspecialchars($building['youtubeUrl']); ?>')"
+                            title="<?php echo $lang === 'ja' ? '動画を見る' : 'View Video'; ?>">
                         <i data-lucide="youtube" style="width: 16px; height: 16px;"></i>
                     </button>
                 <?php endif; ?>
                 
                 <button type="button" 
                         class="btn btn-outline-primary btn-sm"
-                        onclick="showOnMap(<?php echo $building['lat']; ?>, <?php echo $building['lng']; ?>)">
+                        onclick="showOnMap(<?php echo $building['lat']; ?>, <?php echo $building['lng']; ?>)"
+                        title="<?php echo $lang === 'ja' ? '地図を見る' : 'View Map'; ?>">
                     <i data-lucide="map-pin" style="width: 16px; height: 16px;"></i>
                 </button>
             </div>

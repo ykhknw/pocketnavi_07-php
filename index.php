@@ -163,14 +163,31 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <h2 class="h4 mb-2">
                                 <i data-lucide="circle-user-round" class="me-2" style="width: 20px; height: 20px;"></i>
                                 <?php echo $lang === 'ja' ? '建築家' : 'Architect'; ?>: 
-                                <span class="text-primary"><?php echo htmlspecialchars($architectInfo['name_ja'] ?? $architectInfo['name_en'] ?? ''); ?></span>
+                                <span class="text-primary"><?php echo htmlspecialchars($lang === 'ja' ? ($architectInfo['name_ja'] ?? $architectInfo['name_en'] ?? '') : ($architectInfo['name_en'] ?? $architectInfo['name_ja'] ?? '')); ?></span>
                             </h2>
-                            <?php if (!empty($architectInfo['name_en']) && $architectInfo['name_ja'] !== $architectInfo['name_en']): ?>
+                            <?php if ($lang === 'ja' && !empty($architectInfo['name_en']) && $architectInfo['name_ja'] !== $architectInfo['name_en']): ?>
                                 <p class="text-muted mb-0">
                                     <?php echo htmlspecialchars($architectInfo['name_en']); ?>
                                 </p>
+                            <?php elseif ($lang === 'en' && !empty($architectInfo['name_ja']) && $architectInfo['name_ja'] !== $architectInfo['name_en']): ?>
+                                <p class="text-muted mb-0">
+                                    <?php echo htmlspecialchars($architectInfo['name_ja']); ?>
+                                </p>
                             <?php endif; ?>
                         </div>
+                        
+                        <?php if (!empty($architectInfo['individual_website'])): ?>
+                            <div class="card-footer bg-transparent">
+                                <div class="d-flex justify-content-end align-items-center">
+                                    <a href="<?php echo htmlspecialchars($architectInfo['individual_website']); ?>" 
+                                       target="_blank" 
+                                       class="btn btn-outline-secondary btn-sm"
+                                       title="<?php echo $lang === 'ja' ? '関連サイトを見る' : 'Visit Related Site'; ?>">
+                                        <i data-lucide="square-mouse-pointer" style="width: 16px; height: 16px;"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php elseif ($buildingSlug && $currentBuilding): ?>
                     <div class="card mb-4">
@@ -178,11 +195,15 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                             <h2 class="h4 mb-2">
                                 <i data-lucide="building" class="me-2" style="width: 20px; height: 20px;"></i>
                                 <?php echo $lang === 'ja' ? '建築物' : 'Building'; ?>: 
-                                <span class="text-primary"><?php echo htmlspecialchars($currentBuilding['title'] ?? ''); ?></span>
+                                <span class="text-primary"><?php echo htmlspecialchars($lang === 'ja' ? ($currentBuilding['title'] ?? '') : ($currentBuilding['titleEn'] ?? $currentBuilding['title'] ?? '')); ?></span>
                             </h2>
-                            <?php if (!empty($currentBuilding['titleEn']) && $currentBuilding['title'] !== $currentBuilding['titleEn']): ?>
+                            <?php if ($lang === 'ja' && !empty($currentBuilding['titleEn']) && $currentBuilding['title'] !== $currentBuilding['titleEn']): ?>
                                 <p class="text-muted mb-0">
                                     <?php echo htmlspecialchars($currentBuilding['titleEn']); ?>
+                                </p>
+                            <?php elseif ($lang === 'en' && !empty($currentBuilding['title']) && $currentBuilding['title'] !== $currentBuilding['titleEn']): ?>
+                                <p class="text-muted mb-0">
+                                    <?php echo htmlspecialchars($currentBuilding['title']); ?>
                                 </p>
                             <?php endif; ?>
                             
@@ -201,13 +222,13 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                        target="_blank" 
                                        class="btn btn-outline-primary btn-sm">
                                         <i data-lucide="external-link" class="me-1" style="width: 14px; height: 14px;"></i>
-                                        Google画像検索
+                                        <?php echo $lang === 'ja' ? 'Google画像検索' : 'Google Image Search'; ?>
                                     </a>
                                     <a href="https://www.bing.com/images/search?q=<?php echo $encodedName; ?>" 
                                        target="_blank" 
                                        class="btn btn-outline-secondary btn-sm">
                                         <i data-lucide="external-link" class="me-1" style="width: 14px; height: 14px;"></i>
-                                        Microsoft Bing画像検索
+                                        <?php echo $lang === 'ja' ? 'Microsoft Bing画像検索' : 'Microsoft Bing Image Search'; ?>
                                     </a>
                                 </div>
                             </div>
@@ -224,7 +245,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                            target="_blank" 
                                            class="btn btn-outline-danger btn-sm">
                                             <i data-lucide="youtube" class="me-1" style="width: 14px; height: 14px;"></i>
-                                            Youtubeで見る
+                                            <?php echo $lang === 'ja' ? 'Youtubeで見る' : 'Watch on YouTube'; ?>
                                         </a>
                                     </div>
                                 </div>
