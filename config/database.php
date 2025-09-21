@@ -43,8 +43,23 @@ class Database {
 function getDB() {
     static $db = null;
     if ($db === null) {
-        $database = new Database();
-        $db = $database->getConnection();
+        try {
+            // 新しいDatabaseManagerを使用
+            require_once __DIR__ . '/../src/Utils/DatabaseManager.php';
+            $dbManager = DatabaseManager::getInstance();
+            $db = $dbManager->getConnection();
+            
+            // 接続が失敗した場合は従来の方法でフォールバック
+            if ($db === null) {
+                $database = new Database();
+                $db = $database->getConnection();
+            }
+        } catch (Exception $e) {
+            error_log("Database connection error: " . $e->getMessage());
+            // フォールバック
+            $database = new Database();
+            $db = $database->getConnection();
+        }
     }
     return $db;
 }

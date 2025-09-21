@@ -2,9 +2,15 @@
 // PocketNavi - Contact Us Page
 require_once '../config/database.php';
 require_once '../src/Views/includes/functions.php';
+require_once '../src/Utils/InputValidator.php';
+require_once '../src/Utils/SecurityHelper.php';
+require_once '../src/Utils/SecurityHeaders.php';
+
+// セキュリティヘッダーを設定
+SecurityHeaders::setHeadersByEnvironment();
 
 // 言語設定（URLクエリパラメータから取得）
-$lang = isset($_GET['lang']) && in_array($_GET['lang'], ['ja', 'en']) ? $_GET['lang'] : 'ja';
+$lang = InputValidator::validateLanguage($_GET['lang'] ?? 'ja');
 
 // ページタイトル
 $pageTitle = $lang === 'ja' ? 'お問い合わせ' : 'Contact Us';
@@ -14,18 +20,27 @@ $message = '';
 $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $message_content = trim($_POST['message'] ?? '');
-    
-    // バリデーション
-    if (empty($name) || empty($email) || empty($message_content)) {
-        $message = $lang === 'ja' ? 'すべての項目を入力してください。' : 'Please fill in all fields.';
-        $messageType = 'danger';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $message = $lang === 'ja' ? '有効なメールアドレスを入力してください。' : 'Please enter a valid email address.';
+    // CSRFトークンの検証
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!SecurityHelper::validateCsrfToken($csrfToken)) {
+        $message = $lang === 'ja' ? 'セキュリティエラーが発生しました。' : 'Security error occurred.';
         $messageType = 'danger';
     } else {
+        // レート制限のチェック
+        $clientIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        if (!SecurityHelper::checkRateLimit($clientIp, 5, 3600)) {
+            $message = $lang === 'ja' ? '送信回数が多すぎます。しばらく時間をおいてから再度お試しください。' : 'Too many requests. Please try again later.';
+            $messageType = 'danger';
+        } else {
+            $name = InputValidator::validateString($_POST['name'] ?? '', 100);
+            $email = InputValidator::validateEmail($_POST['email'] ?? '');
+            $message_content = InputValidator::validateString($_POST['message'] ?? '', 2000);
+            
+            // バリデーション
+            if ($name === null || $email === null || $message_content === null) {
+                $message = $lang === 'ja' ? 'すべての項目を正しく入力してください。' : 'Please fill in all fields correctly.';
+                $messageType = 'danger';
+            } else {
         // メール送信処理（実際の実装では適切なメール送信ライブラリを使用）
         // ここでは簡単な例として、ログファイルに記録
         $logData = [
@@ -82,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                         
                         <form method="POST" action="">
+                            <input type="hidden" name="csrf_token" value="<?php echo SecurityHelper::escapeAttribute(SecurityHelper::generateCsrfToken()); ?>">
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="name" class="form-label">

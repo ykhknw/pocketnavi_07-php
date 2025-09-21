@@ -5,17 +5,33 @@ let markers = [];
 
 // 地図の初期化
 function initMap(center = [35.6762, 139.6503], buildings = []) {
+    console.log('initMap called with center:', center, 'buildings:', buildings);
+    
+    // マップ要素の存在確認
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+        console.error('Map element not found');
+        return;
+    }
+    
     if (map) {
         map.remove();
     }
     
-    map = L.map('map').setView(center, 15);
-    
-    // タイルレイヤーの追加
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-    }).addTo(map);
+    try {
+        map = L.map('map').setView(center, 15);
+        console.log('Map created successfully');
+        
+        // タイルレイヤーの追加
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        console.log('Tile layer added successfully');
+    } catch (error) {
+        console.error('Error creating map:', error);
+        return;
+    }
     
     // ズームコントロールの位置調整
     map.zoomControl.setPosition('bottomleft');

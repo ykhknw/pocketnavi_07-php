@@ -2,23 +2,28 @@
 // PocketNavi PHP版 - メインページ
 require_once '../config/database.php';
 require_once '../src/Views/includes/functions.php';
+require_once '../src/Utils/InputValidator.php';
+require_once '../src/Utils/SecurityHelper.php';
+require_once '../src/Utils/SecurityHeaders.php';
+
+// セキュリティヘッダーを設定
+SecurityHeaders::setHeadersByEnvironment();
 
 // 言語設定（URLクエリパラメータから取得）
-$lang = isset($_GET['lang']) && in_array($_GET['lang'], ['ja', 'en']) ? $_GET['lang'] : 'ja';
+$lang = InputValidator::validateLanguage($_GET['lang'] ?? 'ja');
 
-// 検索パラメータの取得
-$query = isset($_GET['q']) ? trim($_GET['q']) : '';
-$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$hasPhotos = isset($_GET['photos']) && $_GET['photos'] ? true : false;
-$hasVideos = isset($_GET['videos']) && $_GET['videos'] ? true : false;
+// 検索パラメータの取得と検証
+$query = InputValidator::validateSearchQuery($_GET['q'] ?? '');
+$page = InputValidator::validatePage($_GET['page'] ?? 1);
+$hasPhotos = InputValidator::validateBoolean($_GET['photos'] ?? false);
+$hasVideos = InputValidator::validateBoolean($_GET['videos'] ?? false);
 
-$userLat = isset($_GET['lat']) ? floatval($_GET['lat']) : null;
-$userLng = isset($_GET['lng']) ? floatval($_GET['lng']) : null;
-$radiusKm = isset($_GET['radius']) ? max(1, intval($_GET['radius'])) : 5;
-$buildingSlug = isset($_GET['building_slug']) ? trim($_GET['building_slug']) : '';
-$prefectures = isset($_GET['prefectures']) ? trim($_GET['prefectures']) : '';
-$architectsSlug = isset($_GET['architects_slug']) ? trim($_GET['architects_slug']) : '';
-$completionYears = isset($_GET['completionYears']) ? trim($_GET['completionYears']) : '';
+[$userLat, $userLng] = InputValidator::validateCoordinates($_GET['lat'] ?? null, $_GET['lng'] ?? null);
+$radiusKm = InputValidator::validateInteger($_GET['radius'] ?? 5, 1, 100) ?? 5;
+$buildingSlug = InputValidator::validateSlug($_GET['building_slug'] ?? '');
+$prefectures = InputValidator::validatePrefecture($_GET['prefectures'] ?? '');
+$architectsSlug = InputValidator::validateSlug($_GET['architects_slug'] ?? '');
+$completionYears = InputValidator::validateString($_GET['completionYears'] ?? '', 50);
 
 // デバッグ情報
 if (isset($_GET['debug']) && $_GET['debug'] === '1') {
@@ -631,9 +636,40 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
         };
         console.log('Page info set:', window.pageInfo); // デバッグ用
         
-        // Lucideアイコンの初期化
+        // 建築物データをJavaScriptに渡す
+        window.buildingsData = <?php echo json_encode($buildings); ?>;
+        console.log('Buildings data set:', window.buildingsData); // デバッグ用
+        
+        // Lucideアイコンの初期化とマップの初期化
         document.addEventListener("DOMContentLoaded", () => {
+            console.log('DOMContentLoaded event fired');
+            console.log('Leaflet available:', typeof L !== 'undefined');
+            console.log('initMap function available:', typeof initMap !== 'undefined');
+            
             lucide.createIcons();
+            
+            // Leafletライブラリの読み込み確認
+            if (typeof L === 'undefined') {
+                console.error('Leaflet library not loaded');
+                return;
+            }
+            
+            // マップの初期化
+            if (typeof initMap === 'function') {
+                // 建築物がある場合は最初の建築物の位置を中心に、ない場合は東京を中心に
+                let center = [35.6762, 139.6503]; // デフォルト（東京）
+                if (window.buildingsData && window.buildingsData.length > 0) {
+                    const firstBuilding = window.buildingsData[0];
+                    if (firstBuilding.lat && firstBuilding.lng) {
+                        center = [parseFloat(firstBuilding.lat), parseFloat(firstBuilding.lng)];
+                    }
+                }
+                
+                console.log('Initializing map with center:', center);
+                initMap(center, window.buildingsData || []);
+            } else {
+                console.error('initMap function not found');
+            }
         });
     </script>
 </body>

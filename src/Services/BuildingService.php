@@ -12,14 +12,15 @@ class BuildingService {
     
     public function __construct() {
         $this->db = getDB();
+        if ($this->db === null) {
+            throw new Exception("Database connection failed");
+        }
     }
     
     /**
      * 建築物を検索する
      */
     public function search($query, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
-        $offset = ($page - 1) * $limit;
-        
         // キーワードを分割（全角・半角スペースで分割）
         $keywords = $this->parseKeywords($query);
         
@@ -33,51 +34,13 @@ class BuildingService {
         // メディアフィルターの追加
         $this->addMediaFilters($whereClauses, $hasPhotos, $hasVideos);
         
-        // WHERE句の構築
-        $whereSql = $this->buildWhereClause($whereClauses);
-        
-        // カウントクエリ
-        $countSql = $this->buildCountQuery($whereSql);
-        
-        // データ取得クエリ
-        $sql = $this->buildSearchQuery($whereSql, $limit, $offset);
-        
-        try {
-            // カウント実行
-            $total = $this->executeCountQuery($countSql, $params);
-            
-            // データ取得実行
-            $rows = $this->executeSearchQuery($sql, $params);
-            
-            // データ変換
-            $buildings = $this->transformBuildingData($rows, $lang);
-            
-            $totalPages = ceil($total / $limit);
-            
-            return [
-                'buildings' => $buildings,
-                'total' => $total,
-                'totalPages' => $totalPages,
-                'currentPage' => $page
-            ];
-            
-        } catch (Exception $e) {
-            error_log("Search error: " . $e->getMessage());
-            return [
-                'buildings' => [],
-                'total' => 0,
-                'totalPages' => 0,
-                'currentPage' => $page
-            ];
-        }
+        return $this->executeSearch($whereClauses, $params, $page, $lang, $limit);
     }
     
     /**
      * 複数条件での建築物検索
      */
     public function searchWithMultipleConditions($query, $completionYears, $prefectures, $buildingTypes, $hasPhotos, $hasVideos, $page = 1, $lang = 'ja', $limit = 10) {
-        $offset = ($page - 1) * $limit;
-        
         // WHERE句の構築
         $whereClauses = [];
         $params = [];
@@ -98,51 +61,13 @@ class BuildingService {
         // メディアフィルターの追加
         $this->addMediaFilters($whereClauses, $hasPhotos, $hasVideos);
         
-        // WHERE句の構築
-        $whereSql = $this->buildWhereClause($whereClauses);
-        
-        // カウントクエリ
-        $countSql = $this->buildCountQuery($whereSql);
-        
-        // データ取得クエリ
-        $sql = $this->buildSearchQuery($whereSql, $limit, $offset);
-        
-        try {
-            // カウント実行
-            $total = $this->executeCountQuery($countSql, $params);
-            
-            // データ取得実行
-            $rows = $this->executeSearchQuery($sql, $params);
-            
-            // データ変換
-            $buildings = $this->transformBuildingData($rows, $lang);
-            
-            $totalPages = ceil($total / $limit);
-            
-            return [
-                'buildings' => $buildings,
-                'total' => $total,
-                'totalPages' => $totalPages,
-                'currentPage' => $page
-            ];
-            
-        } catch (Exception $e) {
-            error_log("Search error: " . $e->getMessage());
-            return [
-                'buildings' => [],
-                'total' => 0,
-                'totalPages' => 0,
-                'currentPage' => $page
-            ];
-        }
+        return $this->executeSearch($whereClauses, $params, $page, $lang, $limit);
     }
     
     /**
      * 位置情報による建築物検索
      */
     public function searchByLocation($userLat, $userLng, $radiusKm = 5, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
-        $offset = ($page - 1) * $limit;
-        
         // WHERE句の構築
         $whereClauses = [];
         $params = [];
@@ -153,67 +78,13 @@ class BuildingService {
         // メディアフィルターの追加
         $this->addMediaFilters($whereClauses, $hasPhotos, $hasVideos);
         
-        // WHERE句の構築
-        $whereSql = $this->buildWhereClause($whereClauses);
-        
-        // カウントクエリ
-        $countSql = $this->buildCountQuery($whereSql);
-        
-        // データ取得クエリ（距離順でソート）
-        $sql = $this->buildLocationSearchQuery($whereSql, $limit, $offset);
-        
-        // パラメータの順序を修正（SELECT句用 + WHERE句用）
-        $locationParams = [$userLat, $userLng, $userLat]; // SELECT句用
-        $allParams = array_merge($locationParams, $params); // WHERE句用
-        
-        // デバッグログ
-        error_log("Location search debug - WHERE params count: " . count($params));
-        error_log("Location search debug - Location params count: " . count($locationParams));
-        error_log("Location search debug - All params count: " . count($allParams));
-        error_log("Location search debug - WHERE params: " . print_r($params, true));
-        error_log("Location search debug - Location params: " . print_r($locationParams, true));
-        
-        try {
-            // カウント実行
-            $total = $this->executeCountQuery($countSql, $params);
-            
-            // データ取得実行
-            $rows = $this->executeSearchQuery($sql, $allParams);
-            
-            // デバッグログ
-            error_log("Location search debug - executeSearchQuery result count: " . count($rows));
-            error_log("Location search debug - executeSearchQuery result: " . print_r($rows, true));
-            
-            // データ変換
-            $buildings = $this->transformBuildingData($rows, $lang);
-            
-            $totalPages = ceil($total / $limit);
-            
-            return [
-                'buildings' => $buildings,
-                'total' => $total,
-                'totalPages' => $totalPages,
-                'currentPage' => $page
-            ];
-            
-        } catch (Exception $e) {
-            error_log("Location search error: " . $e->getMessage());
-            error_log("Location search error stack trace: " . $e->getTraceAsString());
-            return [
-                'buildings' => [],
-                'total' => 0,
-                'totalPages' => 0,
-                'currentPage' => $page
-            ];
-        }
+        return $this->executeLocationSearch($whereClauses, $params, $userLat, $userLng, $page, $lang, $limit);
     }
     
     /**
      * 建築家による建築物検索
      */
     public function searchByArchitectSlug($architectSlug, $page = 1, $lang = 'ja', $limit = 10) {
-        $offset = ($page - 1) * $limit;
-        
         // WHERE句の構築
         $whereClauses = [];
         $params = [];
@@ -221,43 +92,7 @@ class BuildingService {
         // 建築家条件の追加
         $this->addArchitectConditions($whereClauses, $params, $architectSlug);
         
-        // WHERE句の構築
-        $whereSql = $this->buildWhereClause($whereClauses);
-        
-        // カウントクエリ
-        $countSql = $this->buildCountQuery($whereSql);
-        
-        // データ取得クエリ
-        $sql = $this->buildSearchQuery($whereSql, $limit, $offset);
-        
-        try {
-            // カウント実行
-            $total = $this->executeCountQuery($countSql, $params);
-            
-            // データ取得実行
-            $rows = $this->executeSearchQuery($sql, $params);
-            
-            // データ変換
-            $buildings = $this->transformBuildingData($rows, $lang);
-            
-            $totalPages = ceil($total / $limit);
-            
-            return [
-                'buildings' => $buildings,
-                'total' => $total,
-                'totalPages' => $totalPages,
-                'currentPage' => $page
-            ];
-            
-        } catch (Exception $e) {
-            error_log("Architect search error: " . $e->getMessage());
-            return [
-                'buildings' => [],
-                'total' => 0,
-                'totalPages' => 0,
-                'currentPage' => $page
-            ];
-        }
+        return $this->executeSearch($whereClauses, $params, $page, $lang, $limit);
     }
     
     /**
@@ -325,12 +160,96 @@ class BuildingService {
             return null;
             
         } catch (Exception $e) {
-            error_log("Get building by slug error: " . $e->getMessage());
+            ErrorHandler::logError("Get building by slug error", "getBySlug", $e);
             return null;
         }
     }
     
     // プライベートメソッド群
+    
+    /**
+     * 共通の検索実行ロジック
+     */
+    private function executeSearch($whereClauses, $params, $page, $lang, $limit) {
+        $offset = ($page - 1) * $limit;
+        
+        // WHERE句の構築
+        $whereSql = $this->buildWhereClause($whereClauses);
+        
+        // カウントクエリ
+        $countSql = $this->buildCountQuery($whereSql);
+        
+        // データ取得クエリ
+        $sql = $this->buildSearchQuery($whereSql, $limit, $offset);
+        
+        try {
+            // カウント実行
+            $total = $this->executeCountQuery($countSql, $params);
+            
+            // データ取得実行
+            $rows = $this->executeSearchQuery($sql, $params);
+            
+            // データ変換
+            $buildings = $this->transformBuildingData($rows, $lang);
+            
+            $totalPages = ceil($total / $limit);
+            
+            return [
+                'buildings' => $buildings,
+                'total' => $total,
+                'totalPages' => $totalPages,
+                'currentPage' => $page
+            ];
+            
+        } catch (Exception $e) {
+            ErrorHandler::logError("Search error", "executeSearch", $e);
+            return ErrorHandler::getEmptySearchResult($page);
+        }
+    }
+    
+    /**
+     * 位置情報検索の専用実行メソッド
+     */
+    private function executeLocationSearch($whereClauses, $params, $userLat, $userLng, $page, $lang, $limit) {
+        $offset = ($page - 1) * $limit;
+        
+        // WHERE句の構築
+        $whereSql = $this->buildWhereClause($whereClauses);
+        
+        // カウントクエリ
+        $countSql = $this->buildCountQuery($whereSql);
+        
+        // データ取得クエリ（距離順でソート）
+        $sql = $this->buildLocationSearchQuery($whereSql, $limit, $offset);
+        
+        // パラメータの順序を修正（SELECT句用 + WHERE句用）
+        $locationParams = [$userLat, $userLng, $userLat]; // SELECT句用
+        $allParams = array_merge($locationParams, $params); // WHERE句用
+        
+        try {
+            // カウント実行
+            $total = $this->executeCountQuery($countSql, $params);
+            
+            // データ取得実行
+            $rows = $this->executeSearchQuery($sql, $allParams);
+            
+            // データ変換
+            $buildings = $this->transformBuildingData($rows, $lang);
+            
+            $totalPages = ceil($total / $limit);
+            
+            return [
+                'buildings' => $buildings,
+                'total' => $total,
+                'totalPages' => $totalPages,
+                'currentPage' => $page
+            ];
+            
+        } catch (Exception $e) {
+            ErrorHandler::logError("Location search error", "executeLocationSearch", $e);
+            return ErrorHandler::getEmptySearchResult($page);
+        }
+    }
     
     /**
      * キーワードを分割
@@ -733,6 +652,10 @@ class BuildingService {
      * カウントクエリを実行
      */
     private function executeCountQuery($sql, $params) {
+        if ($this->db === null) {
+            throw new Exception("Database connection is null");
+        }
+        
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetch()['total'];
@@ -742,9 +665,9 @@ class BuildingService {
      * 検索クエリを実行
      */
     private function executeSearchQuery($sql, $params) {
-        error_log("executeSearchQuery - SQL: " . $sql);
-        error_log("executeSearchQuery - Params count: " . count($params));
-        error_log("executeSearchQuery - Params: " . print_r($params, true));
+        if ($this->db === null) {
+            throw new Exception("Database connection is null");
+        }
         
         try {
             $stmt = $this->db->prepare($sql);
@@ -752,16 +675,12 @@ class BuildingService {
             
             if (!$result) {
                 $errorInfo = $stmt->errorInfo();
-                error_log("executeSearchQuery - SQL error: " . print_r($errorInfo, true));
                 throw new Exception("SQL execution failed: " . print_r($errorInfo, true));
             }
             
-            $rows = $stmt->fetchAll();
-            error_log("executeSearchQuery - result count: " . count($rows));
-            return $rows;
+            return $stmt->fetchAll();
         } catch (Exception $e) {
-            error_log("executeSearchQuery - Exception: " . $e->getMessage());
-            error_log("executeSearchQuery - Stack trace: " . $e->getTraceAsString());
+            ErrorHandler::logError("executeSearchQuery error", "executeSearchQuery", $e);
             throw $e;
         }
     }
