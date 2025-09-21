@@ -30,7 +30,7 @@ function searchBuildingsByLocation($userLat, $userLng, $radiusKm = 5, $page = 1,
     $offset = ($page - 1) * $limit;
     
     // テーブル名の定義
-    $buildings_table = 'buildings_table_2';
+    $buildings_table = 'buildings_table_3';
     $building_architects_table = 'building_architects';
     $architect_compositions_table = 'architect_compositions_2';
     $individual_architects_table = 'individual_architects_3';
@@ -151,7 +151,7 @@ function searchBuildingsByArchitectSlug($architectSlug, $lang = 'ja', $limit = 1
     $offset = ($page - 1) * $limit;
     
     // テーブル名の定義
-    $buildings_table = 'buildings_table_2';
+    $buildings_table = 'buildings_table_3';
     $building_architects_table = 'building_architects';
     $architect_compositions_table = 'architect_compositions_2';
     $individual_architects_table = 'individual_architects_3';
@@ -343,7 +343,7 @@ function searchBuildingsNew($query, $page = 1, $hasPhotos = false, $hasVideos = 
     $offset = ($page - 1) * $limit;
     
     // テーブル名の定義
-    $buildings_table = 'buildings_table_2';
+    $buildings_table = 'buildings_table_3';
     $building_architects_table = 'building_architects';
     $architect_compositions_table = 'architect_compositions_2';
     $individual_architects_table = 'individual_architects_3';
@@ -629,7 +629,7 @@ function getBuildingBySlugNew($slug, $lang = 'ja') {
             GROUP_CONCAT(DISTINCT ia.name_en ORDER BY ac.order_index SEPARATOR ' / ') as architectEn,
             GROUP_CONCAT(DISTINCT ba.architect_id ORDER BY ba.architect_order SEPARATOR ',') as architectIds,
             GROUP_CONCAT(DISTINCT ia.slug ORDER BY ac.order_index SEPARATOR ',') as architectSlugs
-        FROM buildings_table_2 b
+        FROM buildings_table_3 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
         LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
         LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
@@ -673,7 +673,7 @@ function searchBuildingsBySlug($buildingSlug, $lang = 'ja', $limit = 10) {
     $db = getDB();
     
     // テーブル名の定義
-    $buildings_table = 'buildings_table_2';
+    $buildings_table = 'buildings_table_3';
     $building_architects_table = 'building_architects';
     $architect_compositions_table = 'architect_compositions_2';
     $individual_architects_table = 'individual_architects_3';
@@ -775,7 +775,7 @@ function searchBuildingsByPrefecture($prefecture, $page = 1, $lang = 'ja', $limi
     $offset = ($page - 1) * $limit;
     
     // テーブル名の定義
-    $buildings_table = 'buildings_table_2';
+    $buildings_table = 'buildings_table_3';
     $building_architects_table = 'building_architects';
     $architect_compositions_table = 'architect_compositions_2';
     $individual_architects_table = 'individual_architects_3';
@@ -878,7 +878,7 @@ function searchBuildingsByCompletionYear($completionYear, $page = 1, $lang = 'ja
         
         // デバッグ: 実際のcompletionYearsデータを確認
         if (isset($_GET['debug']) && $_GET['debug'] === '1') {
-            $debugSql = "SELECT DISTINCT completionYears FROM buildings_table_2 WHERE completionYears IS NOT NULL AND completionYears != '' ORDER BY completionYears LIMIT 20";
+            $debugSql = "SELECT DISTINCT completionYears FROM buildings_table_3 WHERE completionYears IS NOT NULL AND completionYears != '' ORDER BY completionYears LIMIT 20";
             $debugStmt = $pdo->prepare($debugSql);
             $debugStmt->execute();
             $debugData = $debugStmt->fetchAll(PDO::FETCH_COLUMN);
@@ -898,7 +898,7 @@ function searchBuildingsByCompletionYear($completionYear, $page = 1, $lang = 'ja
         
         // テーブル名を定義
         $architect_compositions_table = 'architect_compositions_2';
-        $buildings_table = 'buildings_table_2';
+        $buildings_table = 'buildings_table_3';
         $building_architects_table = 'building_architects';
         $individual_architects_table = 'individual_architects_3';
         
@@ -1084,7 +1084,7 @@ function searchBuildingsWithMultipleConditions($query, $prefectures, $completion
     $offset = ($page - 1) * $limit;
     
     // テーブル名の定義
-    $buildings_table = 'buildings_table_2';
+    $buildings_table = 'buildings_table_3';
     $building_architects_table = 'building_architects';
     $architect_compositions_table = 'architect_compositions_2';
     $individual_architects_table = 'individual_architects_3';

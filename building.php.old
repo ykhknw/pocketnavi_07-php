@@ -57,7 +57,7 @@ if ($architectSlug) {
             FROM individual_architects_3 ia
             LEFT JOIN architect_compositions_2 ac ON ia.individual_architect_id = ac.individual_architect_id
             LEFT JOIN building_architects ba ON ac.architect_id = ba.architect_id
-            LEFT JOIN buildings_table_2 b ON ba.building_id = b.building_id
+            LEFT JOIN buildings_table_3 b ON ba.building_id = b.building_id
             WHERE ia.slug = ?
             LIMIT 10
         ");
@@ -113,7 +113,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     
     // データベースで直接確認
     $db = getDB();
-    $testStmt = $db->prepare("SELECT building_id, slug, title FROM buildings_table_2 WHERE slug = ? LIMIT 5");
+    $testStmt = $db->prepare("SELECT building_id, slug, title FROM buildings_table_3 WHERE slug = ? LIMIT 5");
     $testStmt->execute([$slug]);
     $testResults = $testStmt->fetchAll();
     echo "<!-- Debug: Direct DB query results: " . print_r($testResults, true) . " -->";

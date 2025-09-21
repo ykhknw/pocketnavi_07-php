@@ -95,7 +95,7 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
             GROUP_CONCAT(DISTINCT ia.name_ja ORDER BY ac.order_index SEPARATOR '　') as architect_names_ja,
             GROUP_CONCAT(DISTINCT ia.name_en ORDER BY ac.order_index SEPARATOR '　') as architect_names_en,
             GROUP_CONCAT(DISTINCT ia.slug ORDER BY ac.order_index SEPARATOR ',') as architect_slugs
-        FROM buildings_table_2 b
+        FROM buildings_table_3 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
         LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
         LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
@@ -108,7 +108,7 @@ function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = fal
     // 総件数取得
     $countSql = "
         SELECT COUNT(DISTINCT b.building_id) as total
-        FROM buildings_table_2 b
+        FROM buildings_table_3 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
         LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
         LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
@@ -194,7 +194,7 @@ function getRecentBuildings($limit = 20, $lang = 'ja') {
             GROUP_CONCAT(DISTINCT ia.name_ja ORDER BY ac.order_index SEPARATOR '　') as architect_names_ja,
             GROUP_CONCAT(DISTINCT ia.name_en ORDER BY ac.order_index SEPARATOR '　') as architect_names_en,
             GROUP_CONCAT(DISTINCT ia.slug ORDER BY ac.order_index SEPARATOR ',') as architect_slugs
-        FROM buildings_table_2 b
+        FROM buildings_table_3 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
         LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
         LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
@@ -323,7 +323,7 @@ function getBuildingBySlug($slug, $lang = 'ja') {
             GROUP_CONCAT(DISTINCT ia.name_ja ORDER BY ac.order_index SEPARATOR '　') as architect_names_ja,
             GROUP_CONCAT(DISTINCT ia.name_en ORDER BY ac.order_index SEPARATOR '　') as architect_names_en,
             GROUP_CONCAT(DISTINCT ia.slug ORDER BY ac.order_index SEPARATOR ',') as architect_slugs
-        FROM buildings_table_2 b
+        FROM buildings_table_3 b
         LEFT JOIN building_architects ba ON b.building_id = ba.building_id
         LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
         LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id
@@ -371,26 +371,26 @@ function debugDatabase() {
     
     try {
         // 建築物の総数
-        $stmt = $db->query("SELECT COUNT(*) as total FROM buildings_table_2");
+        $stmt = $db->query("SELECT COUNT(*) as total FROM buildings_table_3");
         $buildingCount = $stmt->fetch()['total'];
         
         // 座標がある建築物の数
-        $stmt = $db->query("SELECT COUNT(*) as total FROM buildings_table_2 WHERE lat IS NOT NULL AND lng IS NOT NULL");
+        $stmt = $db->query("SELECT COUNT(*) as total FROM buildings_table_3 WHERE lat IS NOT NULL AND lng IS NOT NULL");
         $buildingWithCoords = $stmt->fetch()['total'];
         
         // 東京を含む建築物の数
-        $stmt = $db->query("SELECT COUNT(*) as total FROM buildings_table_2 WHERE location LIKE '%東京%' OR prefectures LIKE '%東京%'");
+        $stmt = $db->query("SELECT COUNT(*) as total FROM buildings_table_3 WHERE location LIKE '%東京%' OR prefectures LIKE '%東京%'");
         $tokyoBuildings = $stmt->fetch()['total'];
         
         // サンプルデータの確認
-        $stmt = $db->query("SELECT building_id, title, location, prefectures, lat, lng FROM buildings_table_2 LIMIT 5");
+        $stmt = $db->query("SELECT building_id, title, location, prefectures, lat, lng FROM buildings_table_3 LIMIT 5");
         $sampleData = $stmt->fetchAll();
         
         // 検索クエリのテスト
         $testQuery = "東京";
         $stmt = $db->prepare("
             SELECT COUNT(*) as total 
-            FROM buildings_table_2 b
+            FROM buildings_table_3 b
             LEFT JOIN building_architects ba ON b.building_id = ba.building_id
             LEFT JOIN architect_compositions_2 ac ON ba.architect_id = ac.architect_id
             LEFT JOIN individual_architects_3 ia ON ac.individual_architect_id = ia.individual_architect_id

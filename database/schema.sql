@@ -2,7 +2,7 @@
 -- MySQL用のテーブル定義
 
 -- 建築物メインテーブル
-CREATE TABLE buildings_table_2 (
+CREATE TABLE buildings_table_3 (
     building_id INT AUTO_INCREMENT PRIMARY KEY,
     uid VARCHAR(255) UNIQUE,
     slug VARCHAR(500),
@@ -73,7 +73,7 @@ CREATE TABLE building_architects (
     
     PRIMARY KEY (building_id, architect_id),
     CONSTRAINT chk_architect_order CHECK (architect_order >= 0),
-    FOREIGN KEY (building_id) REFERENCES buildings_table_2(building_id) ON DELETE CASCADE,
+    FOREIGN KEY (building_id) REFERENCES buildings_table_3(building_id) ON DELETE CASCADE,
     FOREIGN KEY (architect_id) REFERENCES architects_table(architect_id) ON DELETE CASCADE
 );
 
@@ -93,7 +93,7 @@ CREATE TABLE photos (
     CONSTRAINT chk_url_format CHECK (url REGEXP '^https?://'),
     CONSTRAINT chk_thumbnail_url_format CHECK (thumbnail_url REGEXP '^https?://'),
     CONSTRAINT chk_likes CHECK (likes >= 0),
-    FOREIGN KEY (building_id) REFERENCES buildings_table_2(building_id) ON DELETE CASCADE
+    FOREIGN KEY (building_id) REFERENCES buildings_table_3(building_id) ON DELETE CASCADE
 );
 
 -- ユーザーテーブル（将来の拡張用）
@@ -109,17 +109,17 @@ CREATE TABLE users (
 
 -- インデックスの作成
 -- 検索パフォーマンス向上のためのインデックス
-CREATE INDEX idx_buildings_location ON buildings_table_2(lat, lng);
-CREATE INDEX idx_buildings_title ON buildings_table_2(title);
-CREATE INDEX idx_buildings_title_en ON buildings_table_2(titleEn);
-CREATE INDEX idx_buildings_building_types ON buildings_table_2(buildingTypes);
-CREATE INDEX idx_buildings_building_types_en ON buildings_table_2(buildingTypesEn);
-CREATE INDEX idx_buildings_location_en ON buildings_table_2(locationEn);
-CREATE INDEX idx_buildings_architect_details ON buildings_table_2(architectDetails);
-CREATE INDEX idx_buildings_completion_year ON buildings_table_2(completionYears);
-CREATE INDEX idx_buildings_prefectures ON buildings_table_2(prefectures);
-CREATE INDEX idx_buildings_areas ON buildings_table_2(areas);
-CREATE INDEX idx_buildings_slug ON buildings_table_2(slug);
+CREATE INDEX idx_buildings_location ON buildings_table_3(lat, lng);
+CREATE INDEX idx_buildings_title ON buildings_table_3(title);
+CREATE INDEX idx_buildings_title_en ON buildings_table_3(titleEn);
+CREATE INDEX idx_buildings_building_types ON buildings_table_3(buildingTypes);
+CREATE INDEX idx_buildings_building_types_en ON buildings_table_3(buildingTypesEn);
+CREATE INDEX idx_buildings_location_en ON buildings_table_3(locationEn);
+CREATE INDEX idx_buildings_architect_details ON buildings_table_3(architectDetails);
+CREATE INDEX idx_buildings_completion_year ON buildings_table_3(completionYears);
+CREATE INDEX idx_buildings_prefectures ON buildings_table_3(prefectures);
+CREATE INDEX idx_buildings_areas ON buildings_table_3(areas);
+CREATE INDEX idx_buildings_slug ON buildings_table_3(slug);
 
 -- 建築家関連インデックス
 CREATE INDEX idx_individual_architects_slug ON individual_architects_3(slug);
@@ -134,14 +134,14 @@ CREATE INDEX idx_architect_compositions_individual ON architect_compositions_2(i
 -- architect_websites_3テーブルは存在しないため、インデックスも不要
 
 -- 複合インデックス
-CREATE INDEX idx_buildings_search ON buildings_table_2(prefectures, completionYears, lat, lng);
-CREATE INDEX idx_buildings_type_location ON buildings_table_2(buildingTypes, lat, lng);
+CREATE INDEX idx_buildings_search ON buildings_table_3(prefectures, completionYears, lat, lng);
+CREATE INDEX idx_buildings_type_location ON buildings_table_3(buildingTypes, lat, lng);
 CREATE INDEX idx_building_architects_composite ON building_architects(building_id, architect_id);
 CREATE INDEX idx_architect_compositions_composite ON architect_compositions_2(architect_id, individual_architect_id);
 
 -- 全文検索インデックス（横断検索対応）
 -- MySQL 5.7以降でサポート
--- CREATE FULLTEXT INDEX idx_buildings_fulltext_ja ON buildings_table_2(title, buildingTypes, location, architectDetails);
--- CREATE FULLTEXT INDEX idx_buildings_fulltext_en ON buildings_table_2(titleEn, buildingTypesEn, locationEn);
+-- CREATE FULLTEXT INDEX idx_buildings_fulltext_ja ON buildings_table_3(title, buildingTypes, location, architectDetails);
+-- CREATE FULLTEXT INDEX idx_buildings_fulltext_en ON buildings_table_3(titleEn, buildingTypesEn, locationEn);
 -- CREATE FULLTEXT INDEX idx_individual_architects_fulltext ON individual_architects_3(name_ja, name_en);
 

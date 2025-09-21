@@ -40,9 +40,9 @@ try {
     echo "</ul>";
     
     // 4. 各テーブルの構造を確認
-    if (in_array('buildings_table_2', $tables)) {
-        echo "<h3>buildings_table_2 の構造:</h3>";
-        $stmt = $pdo->prepare("DESCRIBE buildings_table_2");
+    if (in_array('buildings_table_3', $tables)) {
+        echo "<h3>buildings_table_3 の構造:</h3>";
+        $stmt = $pdo->prepare("DESCRIBE buildings_table_3");
         $stmt->execute();
         $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
         

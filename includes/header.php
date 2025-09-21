@@ -17,6 +17,16 @@
                         <?php echo $lang === 'ja' ? 'ホーム' : 'Home'; ?>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/about.php?lang=<?php echo $lang; ?>">
+                        <?php echo $lang === 'ja' ? 'このサイトについて' : 'About'; ?>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/contact.php?lang=<?php echo $lang; ?>">
+                        <?php echo $lang === 'ja' ? 'お問い合わせ' : 'Contact Us'; ?>
+                    </a>
+                </li>
             </ul>
             
             <ul class="navbar-nav">
