@@ -87,8 +87,8 @@ if ($buildingSlug) {
         error_log("Original searchBuildings result - total: " . $originalResult['total'] . ", buildings count: " . count($originalResult['buildings']));
     }
     
-    // 検索実行（一時的にsearchBuildingsを使用）
-    $searchResult = searchBuildings($query, $page, $hasPhotos, $hasVideos, $lang, $limit);
+    // 検索実行（複数条件検索を使用）
+    $searchResult = searchBuildingsWithMultipleConditions($query, $completionYears, $prefectures, '', $hasPhotos, $hasVideos, $page, $lang, $limit);
     
     // デバッグ情報
     error_log("Search parameters - query: '$query', prefectures: '$prefectures', completionYears: '$completionYears', hasPhotos: " . ($hasPhotos ? 'true' : 'false') . ", hasVideos: " . ($hasVideos ? 'true' : 'false'));
@@ -273,10 +273,10 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                     <div class="alert alert-warning">
                         <h6>デバッグ情報:</h6>
                         <ul>
-                            <li>総建築物数: <?php echo $debugInfo['total_buildings']; ?></li>
-                            <li>座標がある建築物数: <?php echo $debugInfo['buildings_with_coords']; ?></li>
-                            <li>東京の建築物数: <?php echo $debugInfo['tokyo_buildings']; ?></li>
-                            <li>検索テスト結果: <?php echo $debugInfo['search_test_result']; ?></li>
+                            <li>総建築物数: <?php echo $debugInfo['total_buildings'] ?? 'N/A'; ?></li>
+                            <li>座標がある建築物数: <?php echo $debugInfo['buildings_with_coords'] ?? 'N/A'; ?></li>
+                            <li>東京の建築物数: <?php echo $debugInfo['tokyo_buildings'] ?? 'N/A'; ?></li>
+                            <li>検索テスト結果: <?php echo $debugInfo['search_test_result'] ?? 'N/A'; ?></li>
                         </ul>
                         <small>URLに?debug=1を追加するとこの情報が表示されます</small>
                     </div>

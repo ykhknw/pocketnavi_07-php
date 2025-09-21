@@ -57,8 +57,8 @@
                     
                     <!-- スクリーンショット画像 -->
                     <div class="position-relative">
-                        <img src="https://kenchikuka.com/screen_shots_3_webp/shot_<?php echo $architectInfo['individual_architect_id']; ?>.webp" 
-                             alt="<?php echo htmlspecialchars($architectInfo['website_title'] ?? $architectInfo['name_ja']); ?>"
+                        <img src="https://kenchikuka.com/screen_shots_3_webp/shot_<?php echo $architectInfo['individual_architect_id'] ?? ''; ?>.webp" 
+                             alt="<?php echo htmlspecialchars($architectInfo['website_title'] ?? $architectInfo['name_ja'] ?? ''); ?>"
                              class="img-fluid w-100"
                              style="height: 200px; object-fit: cover; transition: all 0.3s ease;"
                              onerror="this.style.display='none'">
@@ -76,12 +76,12 @@
                     <!-- タイトルとURL -->
                     <div class="p-3" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
                         <h5 class="mb-2 text-dark fw-bold" style="font-size: 1.1rem; line-height: 1.3;">
-                            <?php echo htmlspecialchars($architectInfo['website_title'] ?? $architectInfo['name_ja']); ?>
+                            <?php echo htmlspecialchars($architectInfo['website_title'] ?? $architectInfo['name_ja'] ?? ''); ?>
                         </h5>
                         <div class="d-flex align-items-center">
                             <i data-lucide="globe" class="me-2 text-primary" style="width: 14px; height: 14px;"></i>
                             <small class="text-muted text-truncate">
-                                <?php echo htmlspecialchars($architectInfo['individual_website']); ?>
+                                <?php echo htmlspecialchars($architectInfo['individual_website'] ?? ''); ?>
                             </small>
                         </div>
                     </div>

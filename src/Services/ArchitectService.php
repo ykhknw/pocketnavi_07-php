@@ -24,6 +24,7 @@ class ArchitectService {
                    ia.name_en,
                    ia.slug,
                    ia.individual_website,
+                   ia.website_title,
                    ia.created_at,
                    ia.updated_at
             FROM {$this->individual_architects_table} ia
@@ -187,6 +188,9 @@ class ArchitectService {
                 'nameEn' => $row['name_en'],
                 'slug' => $row['slug'],
                 'individual_website' => $row['individual_website'] ?? '',
+                'website_title' => $row['website_title'] ?? '',
+                'individual_architect_id' => $row['individual_architect_id'],
+                'name_ja' => $row['name_ja'],
                 'createdAt' => $row['created_at'],
                 'updatedAt' => $row['updated_at']
             ];

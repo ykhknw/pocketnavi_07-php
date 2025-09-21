@@ -162,12 +162,27 @@ class BuildingService {
         // データ取得クエリ（距離順でソート）
         $sql = $this->buildLocationSearchQuery($whereSql, $limit, $offset);
         
+        // パラメータの順序を修正（SELECT句用 + WHERE句用）
+        $locationParams = [$userLat, $userLng, $userLat]; // SELECT句用
+        $allParams = array_merge($locationParams, $params); // WHERE句用
+        
+        // デバッグログ
+        error_log("Location search debug - WHERE params count: " . count($params));
+        error_log("Location search debug - Location params count: " . count($locationParams));
+        error_log("Location search debug - All params count: " . count($allParams));
+        error_log("Location search debug - WHERE params: " . print_r($params, true));
+        error_log("Location search debug - Location params: " . print_r($locationParams, true));
+        
         try {
             // カウント実行
             $total = $this->executeCountQuery($countSql, $params);
             
             // データ取得実行
-            $rows = $this->executeSearchQuery($sql, $params);
+            $rows = $this->executeSearchQuery($sql, $allParams);
+            
+            // デバッグログ
+            error_log("Location search debug - executeSearchQuery result count: " . count($rows));
+            error_log("Location search debug - executeSearchQuery result: " . print_r($rows, true));
             
             // データ変換
             $buildings = $this->transformBuildingData($rows, $lang);
@@ -183,6 +198,7 @@ class BuildingService {
             
         } catch (Exception $e) {
             error_log("Location search error: " . $e->getMessage());
+            error_log("Location search error stack trace: " . $e->getTraceAsString());
             return [
                 'buildings' => [],
                 'total' => 0,
@@ -389,10 +405,65 @@ class BuildingService {
             return;
         }
         
+        // 都道府県の英語名→日本語名マッピング
+        $prefectureTranslations = [
+            'Hokkaido' => '北海道',
+            'Aomori' => '青森県',
+            'Iwate' => '岩手県',
+            'Miyagi' => '宮城県',
+            'Akita' => '秋田県',
+            'Yamagata' => '山形県',
+            'Fukushima' => '福島県',
+            'Ibaraki' => '茨城県',
+            'Tochigi' => '栃木県',
+            'Gunma' => '群馬県',
+            'Saitama' => '埼玉県',
+            'Chiba' => '千葉県',
+            'Tokyo' => '東京都',
+            'Kanagawa' => '神奈川県',
+            'Niigata' => '新潟県',
+            'Toyama' => '富山県',
+            'Ishikawa' => '石川県',
+            'Fukui' => '福井県',
+            'Yamanashi' => '山梨県',
+            'Nagano' => '長野県',
+            'Gifu' => '岐阜県',
+            'Shizuoka' => '静岡県',
+            'Aichi' => '愛知県',
+            'Mie' => '三重県',
+            'Shiga' => '滋賀県',
+            'Kyoto' => '京都府',
+            'Osaka' => '大阪府',
+            'Hyogo' => '兵庫県',
+            'Nara' => '奈良県',
+            'Wakayama' => '和歌山県',
+            'Tottori' => '鳥取県',
+            'Shimane' => '島根県',
+            'Okayama' => '岡山県',
+            'Hiroshima' => '広島県',
+            'Yamaguchi' => '山口県',
+            'Tokushima' => '徳島県',
+            'Kagawa' => '香川県',
+            'Ehime' => '愛媛県',
+            'Kochi' => '高知県',
+            'Fukuoka' => '福岡県',
+            'Saga' => '佐賀県',
+            'Nagasaki' => '長崎県',
+            'Kumamoto' => '熊本県',
+            'Oita' => '大分県',
+            'Miyazaki' => '宮崎県',
+            'Kagoshima' => '鹿児島県',
+            'Okinawa' => '沖縄県'
+        ];
+        
         $prefectureConditions = [];
         foreach ($prefectures as $prefecture) {
+            // 英語名の場合は日本語名に変換
+            $japaneseName = isset($prefectureTranslations[$prefecture]) ? $prefectureTranslations[$prefecture] : $prefecture;
+            
+            // 日本語名で検索
             $prefectureConditions[] = "b.prefectures LIKE ?";
-            $params[] = '%' . $prefecture . '%';
+            $params[] = '%' . $japaneseName . '%';
         }
         
         if (!empty($prefectureConditions)) {
@@ -473,70 +544,140 @@ class BuildingService {
      * カウントクエリを構築
      */
     private function buildCountQuery($whereSql) {
-        return "
-            SELECT COUNT(DISTINCT b.building_id) as total
-            FROM {$this->buildings_table} b
-            LEFT JOIN {$this->building_architects_table} ba ON b.building_id = ba.building_id
-            LEFT JOIN {$this->architect_compositions_table} ac ON ba.architect_id = ac.architect_id
-            LEFT JOIN {$this->individual_architects_table} ia ON ac.individual_architect_id = ia.individual_architect_id
-            $whereSql
-        ";
+        // WHERE句に建築家関連の条件が含まれているかチェック
+        if (strpos($whereSql, 'ia.') !== false) {
+            // 建築家検索用（JOINあり）
+            return "
+                SELECT COUNT(DISTINCT b.building_id) as total
+                FROM {$this->buildings_table} b
+                LEFT JOIN {$this->building_architects_table} ba ON b.building_id = ba.building_id
+                LEFT JOIN {$this->architect_compositions_table} ac ON ba.architect_id = ac.architect_id
+                LEFT JOIN {$this->individual_architects_table} ia ON ac.individual_architect_id = ia.individual_architect_id
+                $whereSql
+            ";
+        } else {
+            // 通常検索用（JOINあり、建築家情報も含める）
+            return "
+                SELECT COUNT(DISTINCT b.building_id) as total
+                FROM {$this->buildings_table} b
+                LEFT JOIN {$this->building_architects_table} ba ON b.building_id = ba.building_id
+                LEFT JOIN {$this->architect_compositions_table} ac ON ba.architect_id = ac.architect_id
+                LEFT JOIN {$this->individual_architects_table} ia ON ac.individual_architect_id = ia.individual_architect_id
+                $whereSql
+            ";
+        }
     }
     
     /**
      * 検索クエリを構築
      */
     private function buildSearchQuery($whereSql, $limit, $offset) {
-        return "
-            SELECT b.building_id,
-                   b.uid,
-                   b.title,
-                   b.titleEn,
-                   b.slug,
-                   b.lat,
-                   b.lng,
-                   b.location,
-                   b.locationEn_from_datasheetChunkEn as locationEn,
-                   b.completionYears,
-                   b.buildingTypes,
-                   b.buildingTypesEn,
-                   b.prefectures,
-                   b.prefecturesEn,
-                   b.has_photo,
-                   b.thumbnailUrl,
-                   b.youtubeUrl,
-                   b.created_at,
-                   b.updated_at,
-                   0 as likes,
-                   GROUP_CONCAT(
-                       DISTINCT ia.name_ja 
-                       ORDER BY ba.architect_order, ac.order_index 
-                       SEPARATOR ' / '
-                   ) AS architectJa,
-                   GROUP_CONCAT(
-                       DISTINCT ia.name_en 
-                       ORDER BY ba.architect_order, ac.order_index 
-                       SEPARATOR ' / '
-                   ) AS architectEn,
-                   GROUP_CONCAT(
-                       DISTINCT ba.architect_id 
-                       ORDER BY ba.architect_order 
-                       SEPARATOR ','
-                   ) AS architectIds,
-                   GROUP_CONCAT(
-                       DISTINCT ia.slug 
-                       ORDER BY ba.architect_order, ac.order_index 
-                       SEPARATOR ','
-                   ) AS architectSlugs
-            FROM {$this->buildings_table} b
-            LEFT JOIN {$this->building_architects_table} ba ON b.building_id = ba.building_id
-            LEFT JOIN {$this->architect_compositions_table} ac ON ba.architect_id = ac.architect_id
-            LEFT JOIN {$this->individual_architects_table} ia ON ac.individual_architect_id = ia.individual_architect_id
-            $whereSql
-            GROUP BY b.building_id
-            ORDER BY b.has_photo DESC, b.building_id DESC
-            LIMIT {$limit} OFFSET {$offset}
-        ";
+        // WHERE句に建築家関連の条件が含まれているかチェック
+        if (strpos($whereSql, 'ia.') !== false) {
+            // 建築家検索用（JOINあり）
+            return "
+                SELECT b.building_id,
+                       b.uid,
+                       b.title,
+                       b.titleEn,
+                       b.slug,
+                       b.lat,
+                       b.lng,
+                       b.location,
+                       b.locationEn_from_datasheetChunkEn as locationEn,
+                       b.completionYears,
+                       b.buildingTypes,
+                       b.buildingTypesEn,
+                       b.prefectures,
+                       b.prefecturesEn,
+                       b.has_photo,
+                       b.thumbnailUrl,
+                       b.youtubeUrl,
+                       b.created_at,
+                       b.updated_at,
+                       0 as likes,
+                       GROUP_CONCAT(
+                           DISTINCT ia.name_ja 
+                           ORDER BY ba.architect_order, ac.order_index 
+                           SEPARATOR ' / '
+                       ) AS architectJa,
+                       GROUP_CONCAT(
+                           DISTINCT ia.name_en 
+                           ORDER BY ba.architect_order, ac.order_index 
+                           SEPARATOR ' / '
+                       ) AS architectEn,
+                       GROUP_CONCAT(
+                           DISTINCT ba.architect_id 
+                           ORDER BY ba.architect_order 
+                           SEPARATOR ','
+                       ) AS architectIds,
+                       GROUP_CONCAT(
+                           DISTINCT ia.slug 
+                           ORDER BY ba.architect_order, ac.order_index 
+                           SEPARATOR ','
+                       ) AS architectSlugs
+                FROM {$this->buildings_table} b
+                LEFT JOIN {$this->building_architects_table} ba ON b.building_id = ba.building_id
+                LEFT JOIN {$this->architect_compositions_table} ac ON ba.architect_id = ac.architect_id
+                LEFT JOIN {$this->individual_architects_table} ia ON ac.individual_architect_id = ia.individual_architect_id
+                $whereSql
+                GROUP BY b.building_id, b.uid, b.title, b.titleEn, b.slug, b.lat, b.lng, b.location, b.locationEn_from_datasheetChunkEn, b.completionYears, b.buildingTypes, b.buildingTypesEn, b.prefectures, b.prefecturesEn, b.has_photo, b.thumbnailUrl, b.youtubeUrl, b.created_at, b.updated_at
+                ORDER BY b.has_photo DESC, b.building_id DESC
+                LIMIT {$limit} OFFSET {$offset}
+            ";
+        } else {
+            // 通常検索用（JOINあり、建築家情報も含める）
+            return "
+                SELECT b.building_id,
+                       b.uid,
+                       b.title,
+                       b.titleEn,
+                       b.slug,
+                       b.lat,
+                       b.lng,
+                       b.location,
+                       b.locationEn_from_datasheetChunkEn as locationEn,
+                       b.completionYears,
+                       b.buildingTypes,
+                       b.buildingTypesEn,
+                       b.prefectures,
+                       b.prefecturesEn,
+                       b.has_photo,
+                       b.thumbnailUrl,
+                       b.youtubeUrl,
+                       b.created_at,
+                       b.updated_at,
+                       0 as likes,
+                       GROUP_CONCAT(
+                           DISTINCT ia.name_ja 
+                           ORDER BY ba.architect_order, ac.order_index 
+                           SEPARATOR ' / '
+                       ) AS architectJa,
+                       GROUP_CONCAT(
+                           DISTINCT ia.name_en 
+                           ORDER BY ba.architect_order, ac.order_index 
+                           SEPARATOR ' / '
+                       ) AS architectEn,
+                       GROUP_CONCAT(
+                           DISTINCT ba.architect_id 
+                           ORDER BY ba.architect_order 
+                           SEPARATOR ','
+                       ) AS architectIds,
+                       GROUP_CONCAT(
+                           DISTINCT ia.slug 
+                           ORDER BY ba.architect_order, ac.order_index 
+                           SEPARATOR ','
+                       ) AS architectSlugs
+                FROM {$this->buildings_table} b
+                LEFT JOIN {$this->building_architects_table} ba ON b.building_id = ba.building_id
+                LEFT JOIN {$this->architect_compositions_table} ac ON ba.architect_id = ac.architect_id
+                LEFT JOIN {$this->individual_architects_table} ia ON ac.individual_architect_id = ia.individual_architect_id
+                $whereSql
+                GROUP BY b.building_id, b.uid, b.title, b.titleEn, b.slug, b.lat, b.lng, b.location, b.locationEn_from_datasheetChunkEn, b.completionYears, b.buildingTypes, b.buildingTypesEn, b.prefectures, b.prefecturesEn, b.has_photo, b.thumbnailUrl, b.youtubeUrl, b.created_at, b.updated_at
+                ORDER BY b.has_photo DESC, b.building_id DESC
+                LIMIT {$limit} OFFSET {$offset}
+            ";
+        }
     }
     
     /**
@@ -571,32 +712,18 @@ class BuildingService {
                            sin(radians(?)) * sin(radians(b.lat))
                        )
                    ) AS distance,
-                   GROUP_CONCAT(
-                       DISTINCT ia.name_ja 
-                       ORDER BY ba.architect_order, ac.order_index 
-                       SEPARATOR ' / '
-                   ) AS architectJa,
-                   GROUP_CONCAT(
-                       DISTINCT ia.name_en 
-                       ORDER BY ba.architect_order, ac.order_index 
-                       SEPARATOR ' / '
-                   ) AS architectEn,
-                   GROUP_CONCAT(
-                       DISTINCT ba.architect_id 
-                       ORDER BY ba.architect_order 
-                       SEPARATOR ','
-                   ) AS architectIds,
-                   GROUP_CONCAT(
-                       DISTINCT ia.slug 
-                       ORDER BY ba.architect_order, ac.order_index 
-                       SEPARATOR ','
-                   ) AS architectSlugs
+                   '' as architectJa,
+                   '' as architectEn,
+                   '' as architectIds,
+                   '' as architectSlugs
             FROM {$this->buildings_table} b
-            LEFT JOIN {$this->building_architects_table} ba ON b.building_id = ba.building_id
-            LEFT JOIN {$this->architect_compositions_table} ac ON ba.architect_id = ac.architect_id
-            LEFT JOIN {$this->individual_architects_table} ia ON ac.individual_architect_id = ia.individual_architect_id
-            $whereSql
-            GROUP BY b.building_id
+            WHERE b.lat IS NOT NULL AND b.lng IS NOT NULL AND (
+            6371 * acos(
+                cos(radians(?)) * cos(radians(b.lat)) * 
+                cos(radians(b.lng) - radians(?)) + 
+                sin(radians(?)) * sin(radians(b.lat))
+            )
+        ) <= ?
             ORDER BY distance ASC
             LIMIT {$limit} OFFSET {$offset}
         ";
@@ -615,30 +742,121 @@ class BuildingService {
      * 検索クエリを実行
      */
     private function executeSearchQuery($sql, $params) {
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll();
+        error_log("executeSearchQuery - SQL: " . $sql);
+        error_log("executeSearchQuery - Params count: " . count($params));
+        error_log("executeSearchQuery - Params: " . print_r($params, true));
+        
+        try {
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute($params);
+            
+            if (!$result) {
+                $errorInfo = $stmt->errorInfo();
+                error_log("executeSearchQuery - SQL error: " . print_r($errorInfo, true));
+                throw new Exception("SQL execution failed: " . print_r($errorInfo, true));
+            }
+            
+            $rows = $stmt->fetchAll();
+            error_log("executeSearchQuery - result count: " . count($rows));
+            return $rows;
+        } catch (Exception $e) {
+            error_log("executeSearchQuery - Exception: " . $e->getMessage());
+            error_log("executeSearchQuery - Stack trace: " . $e->getTraceAsString());
+            throw $e;
+        }
     }
     
     /**
      * 建築物データを変換
      */
     private function transformBuildingData($rows, $lang) {
+        if (empty($rows)) {
+            return [];
+        }
+        
+        // 複数行の場合
         if (is_array($rows) && isset($rows[0])) {
-            // 複数行の場合
             $buildings = [];
             foreach ($rows as $row) {
                 if (is_array($row)) {
-                    $buildings[] = transformBuildingData($row, $lang);
+                    $buildings[] = $this->transformSingleBuildingData($row, $lang);
                 }
             }
             return $buildings;
-        } else {
-            // 単一行の場合
-            if (is_array($rows)) {
-                return transformBuildingData($rows, $lang);
-            }
-            return [];
+        } 
+        
+        // 単一行の場合
+        if (is_array($rows)) {
+            return [$this->transformSingleBuildingData($rows, $lang)];
         }
+        
+        return [];
+    }
+    
+    /**
+     * 単一建築物データを変換
+     */
+    private function transformSingleBuildingData($row, $lang) {
+        // 建築家情報の処理
+        $architects = [];
+        if (!empty($row['architectJa']) && $row['architectJa'] !== '') {
+            $namesJa = explode(' / ', $row['architectJa']);
+            $namesEn = !empty($row['architectEn']) && $row['architectEn'] !== '' ? explode(' / ', $row['architectEn']) : [];
+            $architectIds = !empty($row['architectIds']) && $row['architectIds'] !== '' ? explode(',', $row['architectIds']) : [];
+            $architectSlugs = !empty($row['architectSlugs']) && $row['architectSlugs'] !== '' ? explode(',', $row['architectSlugs']) : [];
+            
+            for ($i = 0; $i < count($namesJa); $i++) {
+                $architects[] = [
+                    'architect_id' => isset($architectIds[$i]) ? intval($architectIds[$i]) : 0,
+                    'architectJa' => trim($namesJa[$i]),
+                    'architectEn' => isset($namesEn[$i]) ? trim($namesEn[$i]) : trim($namesJa[$i]),
+                    'slug' => isset($architectSlugs[$i]) ? trim($architectSlugs[$i]) : ''
+                ];
+            }
+        }
+        
+        // 建物用途の配列変換
+        $buildingTypes = !empty($row['buildingTypes']) ? 
+            array_filter(explode('/', $row['buildingTypes']), function($type) {
+                return !empty(trim($type));
+            }) : [];
+        
+        $buildingTypesEn = !empty($row['buildingTypesEn']) ? 
+            array_filter(explode('/', $row['buildingTypesEn']), function($type) {
+                return !empty(trim($type));
+            }) : [];
+        
+        // サムネイルURLの生成
+        $thumbnailUrl = '';
+        if (!empty($row['has_photo'])) {
+            $uid = $row['uid'] ?? '';
+            $photo = $row['has_photo'];
+            $thumbnailUrl = "https://kenchikuka.com/pictures/{$uid}/{$photo}";
+        }
+        
+        return [
+            'building_id' => $row['building_id'] ?? 0,
+            'uid' => $row['uid'] ?? '',
+            'title' => $lang === 'ja' ? ($row['title'] ?? '') : ($row['titleEn'] ?? ''),
+            'titleEn' => $row['titleEn'] ?? '',
+            'slug' => $row['slug'] ?? '',
+            'lat' => $row['lat'] ?? 0,
+            'lng' => $row['lng'] ?? 0,
+            'location' => $lang === 'ja' ? ($row['location'] ?? '') : ($row['locationEn'] ?? ''),
+            'locationEn' => $row['locationEn'] ?? '',
+            'completionYears' => $row['completionYears'] ?? '',
+            'buildingTypes' => $buildingTypes,
+            'buildingTypesEn' => $buildingTypesEn,
+            'prefectures' => $lang === 'ja' ? ($row['prefectures'] ?? '') : ($row['prefecturesEn'] ?? ''),
+            'prefecturesEn' => $row['prefecturesEn'] ?? '',
+            'has_photo' => $row['has_photo'] ?? '',
+            'thumbnailUrl' => $thumbnailUrl,
+            'youtubeUrl' => $row['youtubeUrl'] ?? '',
+            'architects' => $architects,
+            'likes' => $row['likes'] ?? 0,
+            'distance' => isset($row['distance']) && $row['distance'] !== '' ? round($row['distance'], 2) : null,
+            'created_at' => $row['created_at'] ?? '',
+            'updated_at' => $row['updated_at'] ?? ''
+        ];
     }
 }

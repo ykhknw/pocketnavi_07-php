@@ -19,15 +19,15 @@
             echo "<!-- Debug: paginationRange = " . implode(', ', $paginationRange) . " -->";
         }
         
-        $prevPage = 0;
         foreach ($paginationRange as $index => $pageNum): 
+            // 「...」の場合は特別処理
+            if ($pageNum === '...') {
+                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                continue;
+            }
+            
             // 型を統一して比較（文字列と数値の比較問題を回避）
             $isActive = (int)$pageNum === (int)$currentPage;
-            
-            // 前のページとの間にギャップがある場合は「...」を表示
-            if ($pageNum - $prevPage > 1) {
-                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-            }
             
             // デバッグ情報を追加
             if (isset($_GET['debug']) && $_GET['debug'] === '1') {
@@ -47,9 +47,7 @@
                     </a>
                 <?php endif; ?>
             </li>
-        <?php 
-            $prevPage = $pageNum;
-        endforeach; ?>
+        <?php endforeach; ?>
         
         <?php if ($currentPage < $totalPages): ?>
             <li class="page-item">

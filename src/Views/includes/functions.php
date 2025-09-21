@@ -328,17 +328,45 @@ function t($key, $lang = 'ja') {
 /**
  * ページネーションの範囲を取得
  */
-function getPaginationRange($currentPage, $totalPages, $maxVisible = 5) {
-    $half = floor($maxVisible / 2);
-    $start = max(1, $currentPage - $half);
-    $end = min($totalPages, $start + $maxVisible - 1);
-    
-    // 終了位置が調整された場合、開始位置も調整
-    if ($end - $start + 1 < $maxVisible) {
-        $start = max(1, $end - $maxVisible + 1);
+function getPaginationRange($currentPage, $totalPages, $maxVisible = 7) {
+    if ($totalPages <= $maxVisible) {
+        // 総ページ数が表示可能数以下の場合は全て表示
+        return range(1, $totalPages);
     }
     
-    return range($start, $end);
+    $pages = [];
+    
+    // 常に1ページ目を追加
+    $pages[] = 1;
+    
+    // 現在のページ周辺のページを計算
+    $half = floor(($maxVisible - 2) / 2); // 1と最終ページを除いた半分
+    $start = max(2, $currentPage - $half);
+    $end = min($totalPages - 1, $currentPage + $half);
+    
+    // 開始位置が2より大きい場合は「...」を追加
+    if ($start > 2) {
+        $pages[] = '...';
+    }
+    
+    // 中間のページを追加
+    for ($i = $start; $i <= $end; $i++) {
+        if ($i != 1 && $i != $totalPages) { // 1と最終ページは既に追加済み
+            $pages[] = $i;
+        }
+    }
+    
+    // 終了位置が最終ページより小さい場合は「...」を追加
+    if ($end < $totalPages - 1) {
+        $pages[] = '...';
+    }
+    
+    // 常に最終ページを追加（1ページ目でない場合のみ）
+    if ($totalPages > 1) {
+        $pages[] = $totalPages;
+    }
+    
+    return $pages;
 }
 
 /**

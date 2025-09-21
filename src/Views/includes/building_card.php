@@ -262,14 +262,6 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                     </div>
                 <?php endif; ?>
                 
-                <?php if (isset($_GET['debug']) && $_GET['debug'] === '1'): ?>
-                    <!-- デバッグ: 建築年データ -->
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            デバッグ - completionYears: <?php echo isset($building['completionYears']) ? $building['completionYears'] : '未設定'; ?>
-                        </small>
-                    </div>
-                <?php endif; ?>
             </div>
         </div>
     </div>
