@@ -1,14 +1,8 @@
 <!-- Search Form -->
 <div class="card mb-4">
     <div class="card-body">
-        <form method="GET" action="" class="row g-3">
+        <form method="GET" action="/index.php" class="row g-3">
             <input type="hidden" name="lang" value="<?php echo $lang; ?>">
-            <?php if ($prefectures): ?>
-                <input type="hidden" name="prefectures" value="<?php echo htmlspecialchars($prefectures); ?>">
-            <?php endif; ?>
-            <?php if ($completionYears): ?>
-                <input type="hidden" name="completionYears" value="<?php echo htmlspecialchars($completionYears); ?>">
-            <?php endif; ?>
             
             <div class="col-md-8">
                 <div class="input-group">
@@ -51,16 +45,10 @@
                 <div class="card-body">
                     <h6 class="card-title"><?php echo t('detailedSearch', $lang); ?></h6>
                     
-                    <form method="GET" action="">
+                    <form method="GET" action="/index.php">
                         <input type="hidden" name="lang" value="<?php echo $lang; ?>">
                         <?php if ($query): ?>
                             <input type="hidden" name="q" value="<?php echo htmlspecialchars($query); ?>">
-                        <?php endif; ?>
-                        <?php if ($prefectures): ?>
-                            <input type="hidden" name="prefectures" value="<?php echo htmlspecialchars($prefectures); ?>">
-                        <?php endif; ?>
-                        <?php if ($completionYears): ?>
-                            <input type="hidden" name="completionYears" value="<?php echo htmlspecialchars($completionYears); ?>">
                         <?php endif; ?>
                         
                         <div class="row">

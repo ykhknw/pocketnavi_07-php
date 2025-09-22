@@ -2,6 +2,7 @@
 // 統合された共通関数ファイル
 
 // クラスファイルを読み込み
+require_once __DIR__ . '/../../Utils/Database.php';
 require_once __DIR__ . '/../../Services/BuildingService.php';
 require_once __DIR__ . '/../../Services/ArchitectService.php';
 require_once __DIR__ . '/../../Utils/ErrorHandler.php';

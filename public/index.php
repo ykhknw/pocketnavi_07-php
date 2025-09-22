@@ -1,6 +1,8 @@
 <?php
 // PocketNavi PHP版 - メインページ
 require_once '../config/database.php';
+require_once '../src/Utils/Config.php';
+require_once '../src/Utils/Database.php';
 require_once '../src/Views/includes/functions.php';
 require_once '../src/Utils/InputValidator.php';
 require_once '../src/Utils/SecurityHelper.php';

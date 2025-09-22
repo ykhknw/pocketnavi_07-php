@@ -1,7 +1,10 @@
 <?php
 
+// 新しいLoggerクラスを読み込み
+require_once __DIR__ . '/Logger.php';
+
 /**
- * エラーハンドリングクラス
+ * エラーハンドリングクラス（新しいLoggerと統合）
  */
 class ErrorHandler {
     const LOG_LEVEL_ERROR = 'ERROR';
@@ -16,8 +19,8 @@ class ErrorHandler {
         $message = $exception->getMessage();
         $trace = $exception->getTraceAsString();
         
-        // ログに記録
-        self::log($message, self::LOG_LEVEL_ERROR, [
+        // 新しいLoggerを使用してログに記録
+        Logger::error($message, [
             'exception' => get_class($exception),
             'file' => $exception->getFile(),
             'line' => $exception->getLine(),
@@ -34,22 +37,26 @@ class ErrorHandler {
     }
     
     /**
-     * ログを記録する
+     * ログを記録する（後方互換性のため残す）
      */
     public static function log($message, $level = self::LOG_LEVEL_INFO, $context = []) {
-        $timestamp = date('Y-m-d H:i:s');
-        $logEntry = [
-            'timestamp' => $timestamp,
-            'level' => $level,
-            'message' => $message,
-            'context' => $context
-        ];
-        
-        $logLine = json_encode($logEntry, JSON_UNESCAPED_UNICODE) . "\n";
-        
-        // ログファイルに書き込み
-        $logFile = self::getLogFile();
-        error_log($logLine, 3, $logFile);
+        // 新しいLoggerを使用
+        switch ($level) {
+            case self::LOG_LEVEL_DEBUG:
+                Logger::debug($message, $context);
+                break;
+            case self::LOG_LEVEL_INFO:
+                Logger::info($message, $context);
+                break;
+            case self::LOG_LEVEL_WARNING:
+                Logger::warning($message, $context);
+                break;
+            case self::LOG_LEVEL_ERROR:
+                Logger::error($message, $context);
+                break;
+            default:
+                Logger::info($message, $context);
+        }
     }
     
     /**

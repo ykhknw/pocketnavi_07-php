@@ -1,5 +1,8 @@
 <?php
 
+// 必要なファイルを読み込み
+require_once __DIR__ . '/../Utils/Database.php';
+
 /**
  * 建築家検索サービス
  */
@@ -12,6 +15,9 @@ class ArchitectService {
     
     public function __construct() {
         $this->db = getDB();
+        if ($this->db === null) {
+            throw new Exception("Database connection failed");
+        }
     }
     
     /**

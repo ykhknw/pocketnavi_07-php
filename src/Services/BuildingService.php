@@ -1,5 +1,8 @@
 <?php
 
+// 必要なファイルを読み込み
+require_once __DIR__ . '/../Utils/Database.php';
+
 /**
  * 建築物検索サービス
  */

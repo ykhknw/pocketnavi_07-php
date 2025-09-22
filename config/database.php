@@ -1,67 +1,65 @@
 <?php
-// データベース設定
-require_once 'environment.php';
+// データベース設定ファイル（ヘテムル対応版）
 
-class Database {
-    private $host;
-    private $db_name;
-    private $username;
-    private $password;
-    private $conn;
-    
-    public function __construct() {
-        $config = getDatabaseConfig();
-        $this->host = $config['host'];
-        $this->db_name = $config['db_name'];
-        $this->username = $config['username'];
-        $this->password = $config['password'];
-    }
-    
-    public function getConnection() {
-        $this->conn = null;
+// 環境変数を読み込み
+require_once __DIR__ . '/env.php';
+
+return [
+    'default' => getenv('DB_CONNECTION') ?: 'mysql',
+    'connections' => [
+        'mysql' => [
+            'driver' => 'mysql',
+            'host' => getenv('DB_HOST') ?: 'localhost',
+            'port' => (int)(getenv('DB_PORT') ?: 3306),
+            'database' => getenv('DB_DATABASE') ?: '_shinkenchiku_db',
+            'username' => getenv('DB_USERNAME') ?: 'root',
+            'password' => getenv('DB_PASSWORD') ?: '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'options' => [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
+            ],
+            'prefix' => '',
+            'strict' => true,
+            'engine' => 'InnoDB',
+        ],
         
-        try {
-            $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8mb4",
-                $this->username,
-                $this->password,
-                [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false
-                ]
-            );
-        } catch(PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
-        }
+        // 将来の拡張用（PostgreSQL、SQLite等）
+        'pgsql' => [
+            'driver' => 'pgsql',
+            'host' => getenv('DB_HOST') ?: 'localhost',
+            'port' => (int)(getenv('DB_PORT') ?: 5432),
+            'database' => getenv('DB_DATABASE') ?: 'pocketnavi',
+            'username' => getenv('DB_USERNAME') ?: 'postgres',
+            'password' => getenv('DB_PASSWORD') ?: '',
+            'charset' => 'utf8',
+            'prefix' => '',
+            'schema' => 'public',
+        ],
         
-        return $this->conn;
-    }
-}
-
-// データベース接続の取得
-function getDB() {
-    static $db = null;
-    if ($db === null) {
-        try {
-            // 新しいDatabaseManagerを使用
-            require_once __DIR__ . '/../src/Utils/DatabaseManager.php';
-            $dbManager = DatabaseManager::getInstance();
-            $db = $dbManager->getConnection();
-            
-            // 接続が失敗した場合は従来の方法でフォールバック
-            if ($db === null) {
-                $database = new Database();
-                $db = $database->getConnection();
-            }
-        } catch (Exception $e) {
-            error_log("Database connection error: " . $e->getMessage());
-            // フォールバック
-            $database = new Database();
-            $db = $database->getConnection();
-        }
-    }
-    return $db;
-}
-?>
-
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'database' => getenv('DB_DATABASE') ?: ':memory:',
+            'prefix' => '',
+        ],
+    ],
+    
+    // マイグレーション設定
+    'migrations' => [
+        'table' => 'migrations',
+        'batch' => 1,
+    ],
+    
+    // レプリケーション設定（将来の拡張用）
+    'replication' => [
+        'write' => [
+            'host' => getenv('DB_WRITE_HOST') ?: getenv('DB_HOST') ?: 'localhost',
+        ],
+        'read' => [
+            'host' => getenv('DB_READ_HOST') ?: getenv('DB_HOST') ?: 'localhost',
+        ],
+    ],
+];
