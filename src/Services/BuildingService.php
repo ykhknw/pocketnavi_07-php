@@ -44,6 +44,28 @@ class BuildingService {
      * 複数条件での建築物検索
      */
     public function searchWithMultipleConditions($query, $completionYears, $prefectures, $buildingTypes, $hasPhotos, $hasVideos, $page = 1, $lang = 'ja', $limit = 10) {
+        // 検索ログを記録
+        if (!empty($query)) {
+            try {
+                require_once __DIR__ . '/SearchLogService.php';
+                $searchLogService = new SearchLogService();
+                
+                // 検索語が建築物名かどうかを判定
+                $searchType = $this->determineSearchType($query);
+                
+                $searchLogService->logSearch($query, $searchType, [
+                    'hasPhotos' => $hasPhotos,
+                    'hasVideos' => $hasVideos,
+                    'lang' => $lang,
+                    'completionYears' => $completionYears,
+                    'prefectures' => $prefectures,
+                    'buildingTypes' => $buildingTypes
+                ]);
+            } catch (Exception $e) {
+                error_log("Search log error: " . $e->getMessage());
+            }
+        }
+        
         // WHERE句の構築
         $whereClauses = [];
         $params = [];
@@ -65,6 +87,68 @@ class BuildingService {
         $this->addMediaFilters($whereClauses, $hasPhotos, $hasVideos);
         
         return $this->executeSearch($whereClauses, $params, $page, $lang, $limit);
+    }
+    
+    /**
+     * 検索語のタイプを判定
+     */
+    private function determineSearchType($query) {
+        try {
+            // 建築物名として検索してみる
+            $sql = "
+                SELECT COUNT(*) as count
+                FROM {$this->buildings_table}
+                WHERE title = ? OR titleEn = ? OR slug = ?
+                LIMIT 1
+            ";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$query, $query, $query]);
+            $result = $stmt->fetch();
+            
+            if ($result['count'] > 0) {
+                return 'building';
+            }
+            
+            // 建築家名として検索してみる
+            $sql = "
+                SELECT COUNT(*) as count
+                FROM {$this->individual_architects_table}
+                WHERE name_ja = ? OR name_en = ? OR slug = ?
+                LIMIT 1
+            ";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$query, $query, $query]);
+            $result = $stmt->fetch();
+            
+            if ($result['count'] > 0) {
+                return 'architect';
+            }
+            
+            // 都道府県名として検索してみる
+            $sql = "
+                SELECT COUNT(*) as count
+                FROM {$this->buildings_table}
+                WHERE prefectures = ? OR prefecturesEn = ?
+                LIMIT 1
+            ";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$query, $query]);
+            $result = $stmt->fetch();
+            
+            if ($result['count'] > 0) {
+                return 'prefecture';
+            }
+            
+            // どれにも該当しない場合はテキスト検索
+            return 'text';
+            
+        } catch (Exception $e) {
+            error_log("Determine search type error: " . $e->getMessage());
+            return 'text';
+        }
     }
     
     /**

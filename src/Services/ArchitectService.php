@@ -163,18 +163,13 @@ class ArchitectService {
      * 人気検索語を取得
      */
     public function getPopularSearches($lang = 'ja') {
-        $sql = "
-            SELECT search_term, search_count
-            FROM popular_searches
-            WHERE language = ?
-            ORDER BY search_count DESC
-            LIMIT 10
-        ";
-        
         try {
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([$lang]);
-            return $stmt->fetchAll();
+            require_once __DIR__ . '/SearchLogService.php';
+            $searchLogService = new SearchLogService();
+            $searches = $searchLogService->getPopularSearchesForSidebar(5);
+            
+            // SearchLogServiceから取得した完全なデータをそのまま返す
+            return $searches;
             
         } catch (Exception $e) {
             error_log("Get popular searches error: " . $e->getMessage());

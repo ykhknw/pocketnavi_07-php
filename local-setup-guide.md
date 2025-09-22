@@ -26,7 +26,7 @@
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-toast": "^1.2.14",
-    "@supabase/supabase-js": "^2.52.1",
+    "@mysql/mysql2": "^3.6.0",
     "@tanstack/react-query": "^5.83.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -248,10 +248,11 @@ export default defineConfig({
 ## 7. .env.example の作成
 
 ```env
-# Supabase設定
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_USE_SUPABASE=true
+# データベース設定
+DB_HOST=localhost
+DB_NAME=pocketnavi
+DB_USER=your_username
+DB_PASS=your_password
 ```
 
 ## 8. .gitignore の作成

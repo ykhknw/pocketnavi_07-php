@@ -50,6 +50,18 @@ if ($buildingSlug) {
     $currentBuilding = getBuildingBySlug($buildingSlug, $lang);
     
     if ($currentBuilding) {
+        // 建築物ページ閲覧ログを記録
+        try {
+            require_once __DIR__ . '/../src/Services/SearchLogService.php';
+            $searchLogService = new SearchLogService();
+            $searchLogService->logPageView('building', $buildingSlug, $currentBuilding['title'] ?? $currentBuilding['titleEn'] ?? $buildingSlug, [
+                'building_id' => $currentBuilding['building_id'] ?? null,
+                'lang' => $lang
+            ]);
+        } catch (Exception $e) {
+            error_log("Building page view log error: " . $e->getMessage());
+        }
+        
         // 個別建築物を配列として設定
         $buildings = [$currentBuilding];
         $totalBuildings = 1;
@@ -87,6 +99,81 @@ if ($buildingSlug) {
 } else {
     // 複数条件のAND検索または単一条件検索
     // キーワード、都道府県、建築年、メディアフィルターを組み合わせて検索
+    
+    // 都道府県ページ閲覧ログを記録（都道府県のみで検索している場合）
+    if (!empty($prefectures) && empty($query) && empty($completionYears)) {
+        try {
+            require_once __DIR__ . '/../src/Services/SearchLogService.php';
+            $searchLogService = new SearchLogService();
+            
+            // 都道府県名の英語→日本語変換配列
+            $prefectureTranslations = [
+                'Hokkaido' => '北海道',
+                'Aomori' => '青森県',
+                'Iwate' => '岩手県',
+                'Miyagi' => '宮城県',
+                'Akita' => '秋田県',
+                'Yamagata' => '山形県',
+                'Fukushima' => '福島県',
+                'Ibaraki' => '茨城県',
+                'Tochigi' => '栃木県',
+                'Gunma' => '群馬県',
+                'Saitama' => '埼玉県',
+                'Chiba' => '千葉県',
+                'Tokyo' => '東京都',
+                'Kanagawa' => '神奈川県',
+                'Niigata' => '新潟県',
+                'Toyama' => '富山県',
+                'Ishikawa' => '石川県',
+                'Fukui' => '福井県',
+                'Yamanashi' => '山梨県',
+                'Nagano' => '長野県',
+                'Gifu' => '岐阜県',
+                'Shizuoka' => '静岡県',
+                'Aichi' => '愛知県',
+                'Mie' => '三重県',
+                'Shiga' => '滋賀県',
+                'Kyoto' => '京都府',
+                'Osaka' => '大阪府',
+                'Hyogo' => '兵庫県',
+                'Nara' => '奈良県',
+                'Wakayama' => '和歌山県',
+                'Tottori' => '鳥取県',
+                'Shimane' => '島根県',
+                'Okayama' => '岡山県',
+                'Hiroshima' => '広島県',
+                'Yamaguchi' => '山口県',
+                'Tokushima' => '徳島県',
+                'Kagawa' => '香川県',
+                'Ehime' => '愛媛県',
+                'Kochi' => '高知県',
+                'Fukuoka' => '福岡県',
+                'Saga' => '佐賀県',
+                'Nagasaki' => '長崎県',
+                'Kumamoto' => '熊本県',
+                'Oita' => '大分県',
+                'Miyazaki' => '宮崎県',
+                'Kagoshima' => '鹿児島県',
+                'Okinawa' => '沖縄県'
+            ];
+            
+            // 言語に応じて適切な都道府県名を設定
+            $prefectureName = $prefectures;
+            if ($lang === 'ja' && isset($prefectureTranslations[$prefectures])) {
+                $prefectureName = $prefectureTranslations[$prefectures];
+            }
+            
+            $searchLogService->logPageView('prefecture', $prefectures, $prefectureName, [
+                'lang' => $lang,
+                'hasPhotos' => $hasPhotos,
+                'hasVideos' => $hasVideos,
+                'prefecture_ja' => $prefectureTranslations[$prefectures] ?? $prefectures,
+                'prefecture_en' => $prefectures
+            ]);
+        } catch (Exception $e) {
+            error_log("Prefecture page view log error: " . $e->getMessage());
+        }
+    }
     
     // デバッグ: 元の関数と新しい関数の結果を比較
     if (isset($_GET['debug']) && $_GET['debug'] === '1') {
@@ -628,6 +715,8 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Custom JS -->
     <script src="/assets/js/main.js"></script>
+    <!-- Popular Searches JS -->
+    <script src="/assets/js/popular-searches.js"></script>
     
     <script>
         // ページ情報をJavaScriptに渡す

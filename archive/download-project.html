@@ -57,7 +57,7 @@
                 <ul>
                     <li>「uploading an existing file」をクリック</li>
                     <li>プロジェクトファイルを全選択してドラッグ&ドロップ</li>
-                    <li>Commit message: "Initial commit with Supabase integration"</li>
+                    <li>Commit message: "Initial commit with MySQL integration"</li>
                     <li>「Commit changes」をクリック</li>
                 </ul>
             </li>
@@ -80,7 +80,7 @@ git init
         <h3>Step 3: Git操作</h3>
         <div class="command">
 git add .<br>
-git commit -m "Initial commit with Supabase integration"<br>
+git commit -m "Initial commit with MySQL integration"<br>
 git branch -M main<br>
 git remote add origin https://github.com/ykhknw/pocketnavi_02.git<br>
 git push -u origin main
@@ -136,10 +136,11 @@ lerna-debug.log*
         <p><strong>重要:</strong> <code>.env</code> ファイルはGitHubにアップロードしないでください。</p>
         <p>代わりに <code>.env.example</code> ファイルを作成：</p>
         <div class="command">
-# Supabase設定<br>
-VITE_SUPABASE_URL=https://your-project.supabase.co<br>
-VITE_SUPABASE_ANON_KEY=your-anon-key<br>
-VITE_USE_SUPABASE=true
+# データベース設定<br>
+DB_HOST=localhost<br>
+DB_NAME=pocketnavi<br>
+DB_USER=your_username<br>
+DB_PASS=your_password
         </div>
     </div>
 
@@ -206,13 +207,12 @@ pocketnavi_02/
 │   ├── hooks/
 │   │   ├── useLanguage.ts
 │   │   ├── useGeolocation.ts
-│   │   ├── useSupabaseBuildings.ts
-│   │   └── useSupabaseToggle.ts
+│   │   └── useDatabaseToggle.ts
 │   ├── services/
-│   │   └── supabase-api.ts
+│   │   └── mysql-api.ts
 │   ├── lib/
 │   │   ├── utils.ts
-│   │   └── supabase.ts
+│   │   └── database.ts
 │   ├── types/
 │   │   └── index.ts
 │   ├── data/
@@ -228,10 +228,8 @@ pocketnavi_02/
 │       └── mysql-to-postgresql.ts
 └── docs/
     ├── database-optimization.md
-    ├── supabase-optimization.md
-    ├── supabase-migration-guide.md
     ├── windows-postgresql-setup.md
-    └── supabase-connection-troubleshooting.md`;
+    └── database-optimization.md`;
 
             const blob = new Blob([structure], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);

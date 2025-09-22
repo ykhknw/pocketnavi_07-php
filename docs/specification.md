@@ -15,7 +15,7 @@ PocketNavi - 建築物ナビゲーションアプリ
 - **フロントエンド**: React 18 + TypeScript + Vite
 - **スタイリング**: Tailwind CSS + shadcn/ui + Radix UI
 - **地図**: Leaflet
-- **データベース**: Supabase (PostgreSQL)
+- **データベース**: MySQL
 - **画像API**: Unsplash API, Pexels API
 - **ルーティング**: React Router DOM v7
 - **状態管理**: React Context + Custom Hooks
@@ -27,8 +27,8 @@ PocketNavi - 建築物ナビゲーションアプリ
 ### 2.1 アーキテクチャ
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React App     │    │   Supabase      │    │   External APIs │
-│                 │◄──►│   PostgreSQL    │    │   (Unsplash,    │
+│   React App     │    │   MySQL         │    │   External APIs │
+│                 │◄──►│   Database      │    │   (Unsplash,    │
 │   - Components  │    │   - buildings   │    │    Pexels)      │
 │   - Hooks       │    │   - architects  │    │                 │
 │   - Services    │    │   - photos      │    │                 │
@@ -76,8 +76,7 @@ src/
 │   ├── usePagination.ts
 │   ├── usePlanetScaleBuildings.ts
 │   ├── usePlanetScaleToggle.ts
-│   ├── useSupabaseBuildings.ts
-│   └── useSupabaseToggle.ts
+│   └── useDatabaseToggle.ts
 ├── services/           # APIサービス
 │   ├── api.ts
 │   ├── building-search-view.ts
@@ -85,10 +84,10 @@ src/
 │   ├── marker-service.ts
 │   ├── mysql-style-search.ts
 │   ├── planetscale-api.ts
-│   └── supabase-api.ts
+│   └── mysql-api.ts
 ├── utils/              # ユーティリティ関数
 │   ├── database-import.ts
-│   ├── debug-supabase.ts
+│   ├── debug-database.ts
 │   ├── distance.ts
 │   ├── error-handling.ts
 │   ├── mysql-to-postgresql.ts
@@ -107,7 +106,7 @@ src/
 │   ├── mockData.ts
 │   └── searchData.ts
 ├── lib/                # ライブラリ設定
-│   ├── supabase.ts
+│   ├── database.ts
 │   └── utils.ts
 ├── App.tsx
 ├── main.tsx
@@ -262,7 +261,7 @@ interface SearchFilters {
 
 ## 5. API仕様
 
-### 5.1 Supabase API
+### 5.1 MySQL API
 
 #### 5.1.1 建築物取得
 ```typescript
@@ -529,8 +528,8 @@ CREATE INDEX idx_buildings_cross_search ON buildings_table_2(title, titleEn, bui
 ## 8. セキュリティ
 
 ### 8.1 認証・認可
-- **Supabase Auth**: ユーザー認証
-- **Row Level Security (RLS)**: データベースレベルでのセキュリティ
+- **認証**: セッション管理
+- **データベースセキュリティ**: プリペアドステートメントによるSQLインジェクション対策
 - **API Key管理**: 環境変数による安全な管理
 
 ### 8.2 データ保護
@@ -567,8 +566,10 @@ CREATE INDEX idx_buildings_cross_search ON buildings_table_2(title, titleEn, bui
 
 ### 11.1 環境変数
 ```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+DB_HOST=localhost
+DB_NAME=pocketnavi
+DB_USER=your_username
+DB_PASS=your_password
 VITE_UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 VITE_PEXELS_API_KEY=your_pexels_api_key
 ```

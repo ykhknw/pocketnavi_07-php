@@ -145,13 +145,12 @@ pocketnavi_02/
 │   ├── hooks/
 │   │   ├── useLanguage.ts
 │   │   ├── useGeolocation.ts
-│   │   ├── useSupabaseBuildings.ts
-│   │   └── useSupabaseToggle.ts
+│   │   └── useDatabaseToggle.ts
 │   ├── services/
-│   │   └── supabase-api.ts
+│   │   └── mysql-api.ts
 │   ├── lib/
 │   │   ├── utils.ts
-│   │   └── supabase.ts
+│   │   └── database.ts
 │   ├── types/
 │   │   └── index.ts
 │   ├── data/
@@ -167,10 +166,8 @@ pocketnavi_02/
 ├── public/
 └── docs/
     ├── database-optimization.md
-    ├── supabase-optimization.md
-    ├── supabase-migration-guide.md
     ├── windows-postgresql-setup.md
-    └── supabase-connection-troubleshooting.md`;
+    └── database-optimization.md`;
 
             const blob = new Blob([structure], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);

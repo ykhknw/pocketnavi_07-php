@@ -7,7 +7,7 @@
 - 地図表示機能（Leaflet使用）
 - 多言語対応（日本語・英語）
 - レスポンシブデザイン
-- Supabaseデータベース統合
+- MySQLデータベース統合
 - 建築家・建築種別フィルタリング
 - 現在地からの距離検索
 - 建築物詳細モーダル表示
@@ -18,7 +18,7 @@
 - React 18 + TypeScript
 - Vite ビルドツール
 - Tailwind CSS + shadcn/ui
-- Supabase PostgreSQL
+- MySQL
 - React Router DOM
 - Leaflet Maps
 

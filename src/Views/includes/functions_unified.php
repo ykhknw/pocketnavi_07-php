@@ -39,6 +39,21 @@ function generateThumbnailUrl($uid, $hasPhoto) {
  * 建築物を検索する（統合版 - 新しいロジックをベースに）
  */
 function searchBuildings($query, $page = 1, $hasPhotos = false, $hasVideos = false, $lang = 'ja', $limit = 10) {
+    // 検索ログを記録
+    if (!empty($query)) {
+        try {
+            require_once __DIR__ . '/../../Services/SearchLogService.php';
+            $searchLogService = new SearchLogService();
+            $searchLogService->logSearch($query, 'text', [
+                'hasPhotos' => $hasPhotos,
+                'hasVideos' => $hasVideos,
+                'lang' => $lang
+            ]);
+        } catch (Exception $e) {
+            error_log("Search log error: " . $e->getMessage());
+        }
+    }
+    
     $db = getDB();
     $offset = ($page - 1) * $limit;
     
@@ -532,13 +547,32 @@ function getArchitectBySlug($slug, $lang = 'ja') {
  * 人気検索を取得
  */
 function getPopularSearches($lang = 'ja') {
-    // 固定の人気検索（実際のアプリでは検索ログから取得）
-    return [
-        ['query' => '安藤忠雄', 'count' => 45],
-        ['query' => '美術館', 'count' => 38],
-        ['query' => '東京', 'count' => 32],
-        ['query' => '現代建築', 'count' => 28]
-    ];
+    try {
+        require_once __DIR__ . '/../../Services/SearchLogService.php';
+        $searchLogService = new SearchLogService();
+        $searches = $searchLogService->getPopularSearchesForSidebar(5);
+        
+        // 既存の形式に合わせて変換
+        $result = [];
+        foreach ($searches as $search) {
+            $result[] = [
+                'query' => $search['query'],
+                'count' => $search['total_searches']
+            ];
+        }
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        error_log("Get popular searches error: " . $e->getMessage());
+        // フォールバック: 固定データ
+        return [
+            ['query' => '安藤忠雄', 'count' => 45],
+            ['query' => '美術館', 'count' => 38],
+            ['query' => '東京', 'count' => 32],
+            ['query' => '現代建築', 'count' => 28]
+        ];
+    }
 }
 
 /**

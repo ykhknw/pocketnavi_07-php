@@ -279,6 +279,20 @@ function searchBuildingsByArchitectSlug($architectSlug, $page = 1, $lang = 'ja',
         $architectService = new ArchitectService();
         $architectInfo = $architectService->getBySlug($architectSlug, $lang);
         
+        // 建築家ページ閲覧ログを記録
+        if ($architectInfo) {
+            try {
+                require_once __DIR__ . '/../../Services/SearchLogService.php';
+                $searchLogService = new SearchLogService();
+                $searchLogService->logPageView('architect', $architectSlug, $architectInfo['name_ja'] ?? $architectInfo['name_en'] ?? $architectSlug, [
+                    'architect_id' => $architectInfo['individual_architect_id'] ?? null,
+                    'lang' => $lang
+                ]);
+            } catch (Exception $e) {
+                error_log("Architect page view log error: " . $e->getMessage());
+            }
+        }
+        
         $result['architectInfo'] = $architectInfo;
         
         return $result;

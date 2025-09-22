@@ -14,7 +14,7 @@
 - **フロントエンド**: React 18 + TypeScript + Vite
 - **スタイリング**: Tailwind CSS + shadcn/ui + Radix UI
 - **地図**: Leaflet
-- **データベース**: Supabase (PostgreSQL)
+- **データベース**: MySQL
 - **画像API**: Unsplash API, Pexels API
 - **ルーティング**: React Router DOM v7
 - **状態管理**: React Context + Custom Hooks
@@ -104,7 +104,7 @@
 
 ## API仕様
 
-### Supabase API
+### MySQL API
 - 建築物取得・検索（`getBuildings`, `searchBuildings`）
 - 建築家情報取得（`getArchitects`, `getArchitectBySlug`）
 - いいね機能（`likeBuilding`, `unlikeBuilding`）
@@ -158,8 +158,8 @@ CREATE INDEX idx_buildings_completion_year ON buildings_table_2(completion_years
 ## セキュリティ・エラーハンドリング
 
 ### セキュリティ
-- Supabase Authによるユーザー認証
-- Row Level Security (RLS)
+- セッション管理によるユーザー認証
+- プリペアドステートメントによるSQLインジェクション対策
 - 環境変数によるAPI Key管理
 - 入力検証・SQLインジェクション対策
 - 適切なCORS設定
@@ -191,16 +191,18 @@ CREATE INDEX idx_buildings_completion_year ON buildings_table_2(completion_years
 
 ### 環境変数
 ```
-# Supabase設定
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+# データベース設定
+DB_HOST=localhost
+DB_NAME=pocketnavi
+DB_USER=your_username
+DB_PASS=your_password
 
 # 外部API設定
 VITE_UNSPLASH_ACCESS_KEY=your_unsplash_access_key
 VITE_PEXELS_API_KEY=your_pexels_api_key
 
 # アプリ設定
-VITE_USE_SUPABASE=true
+VITE_USE_LOCAL_DB=true
 VITE_APP_ENV=production
 ```
 

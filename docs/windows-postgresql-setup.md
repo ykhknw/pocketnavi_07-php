@@ -172,7 +172,7 @@ CREATE TABLE building_architects (
 #### .envファイルの作成
 ```env
 # ローカル開発用
-VITE_USE_SUPABASE=false
+VITE_USE_LOCAL_DB=true
 VITE_LOCAL_POSTGRES_URL=postgresql://pocketnavi_user:your_secure_password@localhost:5432/pocketnavi_db
 ```
 
