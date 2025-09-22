@@ -197,10 +197,82 @@ function getBuildingBySlug($slug, $lang = 'ja') {
 /**
  * 建築家のスラッグで建築物を検索（新しいクラスベース設計に移行）
  */
-function searchBuildingsByArchitectSlug($architectSlug, $page = 1, $lang = 'ja', $limit = 10) {
+function searchBuildingsByArchitectSlug($architectSlug, $page = 1, $lang = 'ja', $limit = 10, $completionYears = '', $prefectures = '', $query = '') {
     try {
         $buildingService = new BuildingService();
-        $result = $buildingService->searchByArchitectSlug($architectSlug, $page, $lang, $limit);
+        
+        // prefectures、completionYears、queryフィルタリングを適用した建築家検索
+        if (!empty($prefectures) || !empty($completionYears) || !empty($query)) {
+            // フィルタリングが必要な場合は全件を取得してからフィルタリング
+            // 全件を取得（大きなlimitを設定）
+            $result = $buildingService->searchByArchitectSlug($architectSlug, 1, $lang, 1000);
+            
+            // 追加のフィルタリングを適用
+            if (!empty($result['buildings'])) {
+                $filteredBuildings = [];
+                foreach ($result['buildings'] as $building) {
+                    $include = true;
+                    
+                    // queryフィルタリング（キーワード検索）
+                    if (!empty($query) && $include) {
+                        $queryLower = mb_strtolower($query);
+                        $titleMatch = mb_strpos(mb_strtolower($building['title']), $queryLower) !== false;
+                        $titleEnMatch = mb_strpos(mb_strtolower($building['titleEn']), $queryLower) !== false;
+                        $locationMatch = mb_strpos(mb_strtolower($building['location']), $queryLower) !== false;
+                        $locationEnMatch = mb_strpos(mb_strtolower($building['locationEn']), $queryLower) !== false;
+                        $buildingTypesMatch = false;
+                        $buildingTypesEnMatch = false;
+                        
+                        if (!empty($building['buildingTypes'])) {
+                            foreach ($building['buildingTypes'] as $type) {
+                                if (mb_strpos(mb_strtolower($type), $queryLower) !== false) {
+                                    $buildingTypesMatch = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!empty($building['buildingTypesEn'])) {
+                            foreach ($building['buildingTypesEn'] as $typeEn) {
+                                if (mb_strpos(mb_strtolower($typeEn), $queryLower) !== false) {
+                                    $buildingTypesEnMatch = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        $include = $titleMatch || $titleEnMatch || $locationMatch || $locationEnMatch || $buildingTypesMatch || $buildingTypesEnMatch;
+                    }
+                    
+                    // prefecturesフィルタリング
+                    if (!empty($prefectures) && $include) {
+                        $include = $building['prefecturesEn'] === $prefectures;
+                    }
+                    
+                    // completionYearsフィルタリング
+                    if (!empty($completionYears) && $include) {
+                        $include = $building['completionYears'] === $completionYears;
+                    }
+                    
+                    if ($include) {
+                        $filteredBuildings[] = $building;
+                    }
+                }
+                
+                // フィルタリング後にページネーションを適用
+                $totalFiltered = count($filteredBuildings);
+                $offset = ($page - 1) * $limit;
+                $pagedBuildings = array_slice($filteredBuildings, $offset, $limit);
+                
+                $result['buildings'] = $pagedBuildings;
+                $result['total'] = $totalFiltered;
+                $result['totalPages'] = ceil($totalFiltered / $limit);
+                $result['currentPage'] = $page;
+            }
+        } else {
+            // 通常の建築家検索
+            $result = $buildingService->searchByArchitectSlug($architectSlug, $page, $lang, $limit);
+        }
         
         // 建築家情報を取得して追加
         $architectService = new ArchitectService();
@@ -214,7 +286,10 @@ function searchBuildingsByArchitectSlug($architectSlug, $page = 1, $lang = 'ja',
             'architectSlug' => $architectSlug,
             'page' => $page,
             'lang' => $lang,
-            'limit' => $limit
+            'limit' => $limit,
+            'completionYears' => $completionYears,
+            'prefectures' => $prefectures,
+            'query' => $query
         ]);
         return [
             'buildings' => [],

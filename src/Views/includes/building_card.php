@@ -95,7 +95,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                     <i data-lucide="map-pin" class="me-1" style="width: 12px; height: 12px;"></i>
                                     <?php echo htmlspecialchars($lang === 'ja' ? $building['location'] : $building['locationEn']); ?>
                                     <?php if (isset($building['distance'])): ?>
-                                        <span class="ms-2"><i class="fas fa-route me-1"></i><?php echo $building['distance']; ?>km</span>
+                                        <span class="ms-2"><i data-lucide="route" class="me-1" style="width: 12px; height: 12px;"></i><?php echo $building['distance']; ?>km</span>
                                     <?php endif; ?>
                                 </small>
                             </p>
@@ -130,10 +130,23 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                 // 現在のページが建築家ページかどうかを判定
                                 $isArchitectPage = isset($_GET['architects_slug']) && !empty($_GET['architects_slug']);
                                 
+                                // リライトルールが動作しない場合の代替判定
+                                if (!$isArchitectPage) {
+                                    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+                                    $isArchitectPage = preg_match('/^\/architects\/[^\/]+\/?/', $requestUri);
+                                    if ($isArchitectPage) {
+                                        // URLから建築家スラッグを抽出
+                                        preg_match('/^\/architects\/([^\/]+)\/?/', $requestUri, $matches);
+                                        $architectSlug = $matches[1] ?? '';
+                                    }
+                                }
+                                
                                 if ($isArchitectPage) {
                                     // 建築家ページの場合：既存のパラメータを保持してqパラメータを追加
-                                    $architectSlug = $_GET['architects_slug'];
-                                    $urlParams = ['q' => $type];
+                                    if (isset($_GET['architects_slug']) && !empty($_GET['architects_slug'])) {
+                                        $architectSlug = $_GET['architects_slug'];
+                                    }
+                                    $urlParams = ['q' => $type, 'lang' => $lang];
                                     
                                     // 既存のパラメータを保持
                                     if (isset($_GET['completionYears']) && !empty($_GET['completionYears'])) {
@@ -141,6 +154,12 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                     }
                                     if (isset($_GET['prefectures']) && !empty($_GET['prefectures'])) {
                                         $urlParams['prefectures'] = $_GET['prefectures'];
+                                    }
+                                    if (isset($_GET['photos']) && !empty($_GET['photos'])) {
+                                        $urlParams['photos'] = $_GET['photos'];
+                                    }
+                                    if (isset($_GET['videos']) && !empty($_GET['videos'])) {
+                                        $urlParams['videos'] = $_GET['videos'];
                                     }
                                     
                                     $url = "/architects/{$architectSlug}/?" . http_build_query($urlParams);
@@ -181,17 +200,40 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                 // 現在のページが建築家ページかどうかを判定
                                 $isArchitectPage = isset($_GET['architects_slug']) && !empty($_GET['architects_slug']);
                                 
+                                // リライトルールが動作しない場合の代替判定
+                                if (!$isArchitectPage) {
+                                    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+                                    $isArchitectPage = preg_match('/^\/architects\/[^\/]+\/?/', $requestUri);
+                                    if ($isArchitectPage) {
+                                        // URLから建築家スラッグを抽出
+                                        preg_match('/^\/architects\/([^\/]+)\/?/', $requestUri, $matches);
+                                        $architectSlug = $matches[1] ?? '';
+                                    }
+                                }
+                                
                                 if ($isArchitectPage) {
                                     // 建築家ページの場合：既存のパラメータを保持してprefecturesパラメータを追加
-                                    $architectSlug = $_GET['architects_slug'];
-                                    $urlParams = ['prefectures' => $building['prefecturesEn']];
+                                    if (isset($_GET['architects_slug']) && !empty($_GET['architects_slug'])) {
+                                        $architectSlug = $_GET['architects_slug'];
+                                    }
+                                    $urlParams = ['prefectures' => $building['prefecturesEn'], 'lang' => $lang];
                                     
                                     // 既存のパラメータを保持
                                     if (isset($_GET['completionYears']) && !empty($_GET['completionYears'])) {
                                         $urlParams['completionYears'] = $_GET['completionYears'];
                                     }
+                                    if (isset($_GET['photos']) && !empty($_GET['photos'])) {
+                                        $urlParams['photos'] = $_GET['photos'];
+                                    }
+                                    if (isset($_GET['videos']) && !empty($_GET['videos'])) {
+                                        $urlParams['videos'] = $_GET['videos'];
+                                    }
+                                    if (isset($_GET['q']) && !empty($_GET['q'])) {
+                                        $urlParams['q'] = $_GET['q'];
+                                    }
                                     
                                     $url = "/architects/{$architectSlug}/?" . http_build_query($urlParams);
+                                    
                                 } else {
                                     // 通常ページの場合：既存のロジックを使用
                                     $urlParams = ['prefectures' => $building['prefecturesEn'], 'lang' => $lang];
@@ -208,6 +250,7 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                         $urlParams['videos'] = $_GET['videos'];
                                     }
                                     $url = "/index.php?" . http_build_query($urlParams);
+                                    
                                 }
                                 ?>
                                 <a href="<?php echo $url; ?>" 
@@ -222,14 +265,36 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
                                 // 現在のページが建築家ページかどうかを判定
                                 $isArchitectPage = isset($_GET['architects_slug']) && !empty($_GET['architects_slug']);
                                 
+                                // リライトルールが動作しない場合の代替判定
+                                if (!$isArchitectPage) {
+                                    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+                                    $isArchitectPage = preg_match('/^\/architects\/[^\/]+\/?/', $requestUri);
+                                    if ($isArchitectPage) {
+                                        // URLから建築家スラッグを抽出
+                                        preg_match('/^\/architects\/([^\/]+)\/?/', $requestUri, $matches);
+                                        $architectSlug = $matches[1] ?? '';
+                                    }
+                                }
+                                
                                 if ($isArchitectPage) {
                                     // 建築家ページの場合：既存のパラメータを保持してcompletionYearsパラメータを追加
-                                    $architectSlug = $_GET['architects_slug'];
-                                    $urlParams = ['completionYears' => $building['completionYears']];
+                                    if (isset($_GET['architects_slug']) && !empty($_GET['architects_slug'])) {
+                                        $architectSlug = $_GET['architects_slug'];
+                                    }
+                                    $urlParams = ['completionYears' => $building['completionYears'], 'lang' => $lang];
                                     
                                     // 既存のパラメータを保持
                                     if (isset($_GET['prefectures']) && !empty($_GET['prefectures'])) {
                                         $urlParams['prefectures'] = $_GET['prefectures'];
+                                    }
+                                    if (isset($_GET['photos']) && !empty($_GET['photos'])) {
+                                        $urlParams['photos'] = $_GET['photos'];
+                                    }
+                                    if (isset($_GET['videos']) && !empty($_GET['videos'])) {
+                                        $urlParams['videos'] = $_GET['videos'];
+                                    }
+                                    if (isset($_GET['q']) && !empty($_GET['q'])) {
+                                        $urlParams['q'] = $_GET['q'];
                                     }
                                     
                                     $url = "/architects/{$architectSlug}/?" . http_build_query($urlParams);

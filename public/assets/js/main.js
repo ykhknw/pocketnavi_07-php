@@ -123,7 +123,7 @@ function getCurrentLocation() {
     const lang = currentUrl.searchParams.get('lang') || 'ja';
     const loadingText = lang === 'ja' ? '取得中...' : 'Getting...';
     
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>' + loadingText;
+    btn.innerHTML = '<i data-lucide="loader-2" class="me-1" style="width: 16px; height: 16px; animation: spin 1s linear infinite;"></i>' + loadingText;
     btn.disabled = true;
     
     if (navigator.geolocation) {
@@ -344,13 +344,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// パルスアニメーションのCSS追加
+// アニメーション用のCSS追加
 const style = document.createElement('style');
 style.textContent = `
     @keyframes pulse {
         0% { transform: scale(1); opacity: 1; }
         50% { transform: scale(1.1); opacity: 0.7; }
         100% { transform: scale(1); opacity: 1; }
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 `;
 document.head.appendChild(style);

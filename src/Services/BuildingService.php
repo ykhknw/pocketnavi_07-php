@@ -85,14 +85,9 @@ class BuildingService {
      * 建築家による建築物検索
      */
     public function searchByArchitectSlug($architectSlug, $page = 1, $lang = 'ja', $limit = 10) {
-        // WHERE句の構築
-        $whereClauses = [];
-        $params = [];
-        
-        // 建築家条件の追加
-        $this->addArchitectConditions($whereClauses, $params, $architectSlug);
-        
-        return $this->executeSearch($whereClauses, $params, $page, $lang, $limit);
+        // 建築家検索の場合は、特定の建築家でフィルタリングされた建築物を取得し、
+        // 各建築物の建築家情報は、その建築物に紐付くすべての建築家を取得する
+        return $this->executeArchitectSearch($architectSlug, $page, $lang, $limit);
     }
     
     /**
@@ -203,6 +198,103 @@ class BuildingService {
             
         } catch (Exception $e) {
             ErrorHandler::logError("Search error", "executeSearch", $e);
+            return ErrorHandler::getEmptySearchResult($page);
+        }
+    }
+    
+    /**
+     * 建築家検索の専用実行メソッド
+     */
+    private function executeArchitectSearch($architectSlug, $page, $lang, $limit) {
+        $offset = ($page - 1) * $limit;
+        
+        // カウントクエリ（特定の建築家でフィルタリング）
+        $countSql = "
+            SELECT COUNT(DISTINCT b.building_id) as total
+            FROM {$this->buildings_table} b
+            LEFT JOIN {$this->building_architects_table} ba ON b.building_id = ba.building_id
+            LEFT JOIN {$this->architect_compositions_table} ac ON ba.architect_id = ac.architect_id
+            LEFT JOIN {$this->individual_architects_table} ia ON ac.individual_architect_id = ia.individual_architect_id
+            WHERE ia.slug = ?
+        ";
+        
+        // データ取得クエリ（特定の建築家でフィルタリングされた建築物を取得し、
+        // 各建築物の建築家情報は、その建築物に紐付くすべての建築家を取得）
+        $sql = "
+            SELECT b.building_id,
+                   b.uid,
+                   b.title,
+                   b.titleEn,
+                   b.slug,
+                   b.lat,
+                   b.lng,
+                   b.location,
+                   b.locationEn_from_datasheetChunkEn as locationEn,
+                   b.completionYears,
+                   b.buildingTypes,
+                   b.buildingTypesEn,
+                   b.prefectures,
+                   b.prefecturesEn,
+                   b.has_photo,
+                   b.thumbnailUrl,
+                   b.youtubeUrl,
+                   b.created_at,
+                   b.updated_at,
+                   0 as likes,
+                   GROUP_CONCAT(
+                       DISTINCT ia2.name_ja 
+                       ORDER BY ba2.architect_order, ac2.order_index 
+                       SEPARATOR ' / '
+                   ) AS architectJa,
+                   GROUP_CONCAT(
+                       DISTINCT ia2.name_en 
+                       ORDER BY ba2.architect_order, ac2.order_index 
+                       SEPARATOR ' / '
+                   ) AS architectEn,
+                   GROUP_CONCAT(
+                       DISTINCT ba2.architect_id 
+                       ORDER BY ba2.architect_order 
+                       SEPARATOR ','
+                   ) AS architectIds,
+                   GROUP_CONCAT(
+                       DISTINCT ia2.slug 
+                       ORDER BY ba2.architect_order, ac2.order_index 
+                       SEPARATOR ','
+                   ) AS architectSlugs
+            FROM {$this->buildings_table} b
+            LEFT JOIN {$this->building_architects_table} ba ON b.building_id = ba.building_id
+            LEFT JOIN {$this->architect_compositions_table} ac ON ba.architect_id = ac.architect_id
+            LEFT JOIN {$this->individual_architects_table} ia ON ac.individual_architect_id = ia.individual_architect_id
+            LEFT JOIN {$this->building_architects_table} ba2 ON b.building_id = ba2.building_id
+            LEFT JOIN {$this->architect_compositions_table} ac2 ON ba2.architect_id = ac2.architect_id
+            LEFT JOIN {$this->individual_architects_table} ia2 ON ac2.individual_architect_id = ia2.individual_architect_id
+            WHERE ia.slug = ?
+            GROUP BY b.building_id, b.uid, b.title, b.titleEn, b.slug, b.lat, b.lng, b.location, b.locationEn_from_datasheetChunkEn, b.completionYears, b.buildingTypes, b.buildingTypesEn, b.prefectures, b.prefecturesEn, b.has_photo, b.thumbnailUrl, b.youtubeUrl, b.created_at, b.updated_at
+            ORDER BY b.has_photo DESC, b.building_id DESC
+            LIMIT {$limit} OFFSET {$offset}
+        ";
+        
+        try {
+            // カウント実行
+            $total = $this->executeCountQuery($countSql, [$architectSlug]);
+            
+            // データ取得実行
+            $rows = $this->executeSearchQuery($sql, [$architectSlug]);
+            
+            // データ変換
+            $buildings = $this->transformBuildingData($rows, $lang);
+            
+            $totalPages = ceil($total / $limit);
+            
+            return [
+                'buildings' => $buildings,
+                'total' => $total,
+                'totalPages' => $totalPages,
+                'currentPage' => $page
+            ];
+            
+        } catch (Exception $e) {
+            ErrorHandler::logError("Architect search error", "executeArchitectSearch", $e);
             return ErrorHandler::getEmptySearchResult($page);
         }
     }
@@ -658,7 +750,17 @@ class BuildingService {
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetch()['total'];
+        $result = $stmt->fetch();
+        if ($result) {
+            if (isset($result['total'])) {
+                return $result['total'];
+            } elseif (isset($result[0])) {
+                return $result[0];
+            } else {
+                return 0;
+            }
+        }
+        return 0;
     }
     
     /**

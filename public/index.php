@@ -62,7 +62,7 @@ if ($buildingSlug) {
     }
 } elseif ($architectsSlug) {
     // 建築家slug検索（completionYears、prefectures、queryフィルターも適用）
-    $searchResult = searchBuildingsByArchitectSlug($architectsSlug, $page, $lang, $limit);
+    $searchResult = searchBuildingsByArchitectSlug($architectsSlug, $page, $lang, $limit, $completionYears, $prefectures, $query);
     $buildings = $searchResult['buildings'];
     $totalBuildings = $searchResult['total'];
     $totalPages = $searchResult['totalPages'];
@@ -74,6 +74,7 @@ if ($buildingSlug) {
         error_log("Debug - architectsSlug: " . $architectsSlug);
         error_log("Debug - architectInfo: " . print_r($architectInfo, true));
     }
+    
 } elseif ($userLat !== null && $userLng !== null) {
     // 現在地検索
     $searchResult = searchBuildingsByLocation($userLat, $userLng, $radiusKm, $page, $hasPhotos, $hasVideos, $lang, $limit);
@@ -152,8 +153,6 @@ if (isset($_GET['debug']) && $_GET['debug'] === '1') {
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Leaflet CSS -->

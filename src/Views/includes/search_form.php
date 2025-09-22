@@ -95,12 +95,12 @@
                         
                         <div class="mt-3">
                             <button type="submit" class="btn btn-primary me-2">
-                                <i class="fas fa-search me-1"></i>
+                                <i data-lucide="search" class="me-1" style="width: 16px; height: 16px;"></i>
                                 <?php echo t('search', $lang); ?>
                             </button>
                             
                             <a href="/index.php?lang=<?php echo $lang; ?>" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>
+                                <i data-lucide="x" class="me-1" style="width: 16px; height: 16px;"></i>
                                 <?php echo t('clearFilters', $lang); ?>
                             </a>
                         </div>
